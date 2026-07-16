@@ -1,0 +1,550 @@
+{
+  "entries": [
+    {
+      "code": 0,
+      "international_en": "",
+      "japan_en": "",
+      "japan_ja": "",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 1,
+      "international_en": "You are in the danger zone, leave the area immediately. Listen to radio or media for directions and information.",
+      "japan_en": "Take the best immediate action to save your life.",
+      "japan_ja": "直ちに命を守るための最善の行動を。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 2,
+      "international_en": "You are in the danger zone, leave the area immediately and reach the evacuation point indicated by the area plotted in yellow. Listen to radio or media for directions and information.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 3,
+      "international_en": "Seek shelter in a building immediately. Stay under cover and stay informed.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 4,
+      "international_en": "Seek out a cellar or interior rooms on lower floors.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 5,
+      "international_en": "If you are in an alpine terrain, start descending immediately and seek for shelter.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 6,
+      "international_en": "Quickly move into interior rooms. If you are in a vehicle: Stop driving immediately on the edge of the road. If a building is nearby, seek shelter in that building.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 7,
+      "international_en": "If you are in open terrain and you cannot find shelter, lie face-down on the ground and protect your head and neck with your hands, in a hollow where possible.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 8,
+      "international_en": "Prepare for evacuation. Take only the essentials with you, especially ID cards, passport, credit cards and cash. Evacuate only after the instruction of the emergency authorities.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 9,
+      "international_en": "Prepare emergency food and relief material: Check and restock your equipment and supplies of water, food, medicine, cash and batteries.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 10,
+      "international_en": "Stay away from glass surfaces such as windows and glass doors. There is a risk of injury from glass splinters.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 11,
+      "international_en": "Reduce your power consumption to a minimum.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 12,
+      "international_en": "Reduce your water consumption to a minimum.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 13,
+      "international_en": "Boil water before drinking it or using it in the kitchen.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 14,
+      "international_en": "Keep at least one metre away from any conversation partners. Avoid physical contact with other people such as kissing and shaking hands. Wash your hands regularly and thoroughly.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 15,
+      "international_en": "Do not drink any tap water. Avoid any skin contact with tap water. Only drink mineral water from a bottle. Turn off the water supply to your house.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 16,
+      "international_en": "Watch out for escaping gas. This can be indicated by hissing noises or a typical gas odour. Do not use matches, lighters or the like: naked flames in combination with leaking gas can lead to explosions and fires.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 17,
+      "international_en": "Do not go outside and do not use your car.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 18,
+      "international_en": "Do not touch any objects that seem suspicious to you. Debris can cause additional hazards such as fires and explosions. Inform the emergency services about damage and debris.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 19,
+      "international_en": "Do not enter smoke-filled rooms. Deadly gases can form there.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 20,
+      "international_en": "Do not enter cellars or underground car parks.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 21,
+      "international_en": "Do not leave pets or livestock outside.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 22,
+      "international_en": "Do not touch any dead animals. Report any findings of dead wild animals to the authorities.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 23,
+      "international_en": "Avoid driving.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 24,
+      "international_en": "Avoid all items with metal parts such as umbrellas and bicycles. Do not bathe or shower during a thunderstorm. Bathing and showering can be life-threatening.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 25,
+      "international_en": "Avoid rooms directly underneath the roof truss. Avoid very large rooms, such as halls, in which the ceiling is not supported by pillars.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 26,
+      "international_en": "Avoid going outdoors. Keep away from trees, towers and masts. Keep at least 20 m away from power lines. Watch out for flying objects and falling objects.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 27,
+      "international_en": "Avoid the danger area.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 28,
+      "international_en": "Avoid going out when it is not necessary.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 29,
+      "international_en": "This is only a test. You do not have to take any action or to adopt any particular sheltering behaviour.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 30,
+      "international_en": "This replaces the warning previously in effect for this area.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 31,
+      "international_en": "Conditions have improved and are no longer expected to meet alert criteria.",
+      "japan_en": null,
+      "japan_ja": null,
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 126,
+      "international_en": null,
+      "japan_en": "This is a test message for DCX.",
+      "japan_ja": "これは、DCX のテストです。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 127,
+      "international_en": null,
+      "japan_en": "Take the best immediate action to save your life.",
+      "japan_ja": "直ちに命を守るための最善の行動を。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 128,
+      "international_en": null,
+      "japan_en": "Missile launched, missile launched. It is believed that a missile was launched. Please take shelter inside buildings or underground.",
+      "japan_ja": "ミサイル発射。ミサイル発射。ミサイルが発射されたものとみられます。建物の中、又は地下に避難して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 129,
+      "international_en": null,
+      "japan_en": "Missile passed, missile passed. It is believed that the previous missile has passed over the area. The call for evacuation will be canceled. If you find any suspicious object, please stay away from it and inform the police or the fire department immediately.",
+      "japan_ja": "ミサイル通過。ミサイル通過。先程のミサイルは通過したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 130,
+      "international_en": null,
+      "japan_en": "It is believed that the previous missile has dropped in the sea. The call for evacuation will be canceled. If you find any suspicious object, please stay away from it and inform the police or the fire department immediately.",
+      "japan_ja": "先程のミサイルは、海に落下したものとみられます。避難の呼びかけを解除します。不審なものには決して近寄らず直ちに警察や消防などに連絡して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 131,
+      "international_en": null,
+      "japan_en": "It is believed that the previous missile will not come to Japan. The call for evacuation will be canceled.",
+      "japan_ja": "先程のミサイルは、我が国には飛来しないものとみられます。避難の呼びかけを解除します。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 132,
+      "international_en": null,
+      "japan_en": "Take shelter immediately, take shelter immediately. Please take shelter inside buildings or underground. It is believed that a missile will drop around this area. Please take shelter immediately.",
+      "japan_ja": "直ちに避難。直ちに避難。直ちに建物の中、又は地下に避難して下さい。ミサイルが、周辺に落下するものとみられます。直ちに避難して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 133,
+      "international_en": null,
+      "japan_en": "The previous missile has been intercepted and destroyed. There is a possibility of pieces of the destroyed missile dropping. We will keep you informed. Please stay indoors for shelter.",
+      "japan_ja": "先程のミサイルは、迎撃により破壊されました。ミサイルの破片の落下の可能性があります。続報を伝達しますので、引き続き屋内に避難して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 134,
+      "international_en": null,
+      "japan_en": "Missile dropped, missile dropped. It is believed that a missile has dropped around this area. We will keep you informed. Please stay indoors for shelter.",
+      "japan_ja": "ミサイル落下。ミサイル落下。ミサイルが、周辺に落下したものとみられます。続報を伝達しますので、引き続き屋内に避難して下さい。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 135,
+      "international_en": null,
+      "japan_en": "It is believed that the previous missile will not drop in Japan. The call for evacuation will be canceled.",
+      "japan_ja": "先程のミサイルは、我が国には落下しないものとみられます。避難の呼びかけを解除します。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 136,
+      "international_en": null,
+      "japan_en": "This is a test message for J-Alert.",
+      "japan_ja": "これは、Jアラートのテストです。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 255,
+      "international_en": null,
+      "japan_en": "Take immediate action to save your life.",
+      "japan_ja": "直ちに命を守るための最善の行動を。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 256,
+      "international_en": null,
+      "japan_en": "Stay.",
+      "japan_ja": "留まれ。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 257,
+      "international_en": null,
+      "japan_en": "Stay. Under/inside a solid structure.",
+      "japan_ja": "留まれ。頑丈なものの下/中。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 258,
+      "international_en": null,
+      "japan_en": "Stay. 3rd floor or higher.",
+      "japan_ja": "留まれ。3階以上。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 259,
+      "international_en": null,
+      "japan_en": "Stay. Underground.",
+      "japan_ja": "留まれ。地下。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 260,
+      "international_en": null,
+      "japan_en": "Stay. Mountain.",
+      "japan_ja": "留まれ。山。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 261,
+      "international_en": null,
+      "japan_en": "Stay. Water area.",
+      "japan_ja": "留まれ。水場。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 262,
+      "international_en": null,
+      "japan_en": "Stay. Building where chemicals are handled, such as a factory.",
+      "japan_ja": "留まれ。工場等化学系を取扱う建物。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 263,
+      "international_en": null,
+      "japan_en": "Stay. Cliffs and areas at risk of collapse.",
+      "japan_ja": "留まれ。崖等崩れやすい場所。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 512,
+      "international_en": null,
+      "japan_en": "Move to/toward",
+      "japan_ja": "向かえ。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 513,
+      "international_en": null,
+      "japan_en": "Move to/toward Under/inside a solid structure.",
+      "japan_ja": "向かえ。頑丈なものの下/中。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 514,
+      "international_en": null,
+      "japan_en": "Move to/toward 3rd floor or higher.",
+      "japan_ja": "向かえ。3階以上。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 515,
+      "international_en": null,
+      "japan_en": "Move to/toward Underground.",
+      "japan_ja": "向かえ。地下。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 516,
+      "international_en": null,
+      "japan_en": "Move to/toward Mountain.",
+      "japan_ja": "向かえ。山。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 517,
+      "international_en": null,
+      "japan_en": "Move to/toward Water area.",
+      "japan_ja": "向かえ。水場。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 518,
+      "international_en": null,
+      "japan_en": "Move to/toward Building where chemicals are handled, such as a factory.",
+      "japan_ja": "向かえ。工場等化学系を取扱う建物。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 519,
+      "international_en": null,
+      "japan_en": "Move to/toward Cliffs and areas at risk of collapse.",
+      "japan_ja": "向かえ。崖等崩れやすい場所。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 768,
+      "international_en": null,
+      "japan_en": "Keep away from",
+      "japan_ja": "離れろ。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 769,
+      "international_en": null,
+      "japan_en": "Keep away from Under/inside a solid structure.",
+      "japan_ja": "離れろ。頑丈なものの下/中。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 770,
+      "international_en": null,
+      "japan_en": "Keep away from 3rd floor or higher.",
+      "japan_ja": "離れろ。3階以上。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 771,
+      "international_en": null,
+      "japan_en": "Keep away from Underground.",
+      "japan_ja": "離れろ。地下。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 772,
+      "international_en": null,
+      "japan_en": "Keep away from Mountain.",
+      "japan_ja": "離れろ。山。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 773,
+      "international_en": null,
+      "japan_en": "Keep away from Water area.",
+      "japan_ja": "離れろ。水場。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 774,
+      "international_en": null,
+      "japan_en": "Keep away from Building where chemicals are handled, such as a factory.",
+      "japan_ja": "離れろ。工場等化学系を取扱う建物。",
+      "known": true,
+      "reserved": false
+    },
+    {
+      "code": 775,
+      "international_en": null,
+      "japan_en": "Keep away from Cliffs and areas at risk of collapse.",
+      "japan_ja": "離れろ。崖等崩れやすい場所。",
+      "known": true,
+      "reserved": false
+    }
+  ],
+  "field": "A11",
+  "spec": "CAMF-1.2"
+}

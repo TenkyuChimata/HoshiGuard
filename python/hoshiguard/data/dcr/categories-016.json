@@ -1,0 +1,102 @@
+{
+  "entries": [
+    {
+      "code": 1,
+      "known": true,
+      "official_en": "Earthquake Early Warning",
+      "official_ja": "緊急地震速報",
+      "reserved": false,
+      "token": "EARTHQUAKE_EARLY_WARNING"
+    },
+    {
+      "code": 2,
+      "known": true,
+      "official_en": "Hypocenter",
+      "official_ja": "震源",
+      "reserved": false,
+      "token": "HYPOCENTER"
+    },
+    {
+      "code": 3,
+      "known": true,
+      "official_en": "Seismic Intensity",
+      "official_ja": "震度",
+      "reserved": false,
+      "token": "SEISMIC_INTENSITY"
+    },
+    {
+      "code": 4,
+      "known": true,
+      "official_en": "Nankai Trough Earthquake",
+      "official_ja": "南海トラフ地震",
+      "reserved": false,
+      "token": "NANKAI_TROUGH_EARTHQUAKE"
+    },
+    {
+      "code": 5,
+      "known": true,
+      "official_en": "Tsunami",
+      "official_ja": "津波",
+      "reserved": false,
+      "token": "TSUNAMI"
+    },
+    {
+      "code": 6,
+      "known": true,
+      "official_en": "Northwest Pacific Tsunami",
+      "official_ja": "北西太平洋津波",
+      "reserved": false,
+      "token": "NORTHWEST_PACIFIC_TSUNAMI"
+    },
+    {
+      "code": 8,
+      "known": true,
+      "official_en": "Volcano",
+      "official_ja": "火山",
+      "reserved": false,
+      "token": "VOLCANO"
+    },
+    {
+      "code": 9,
+      "known": true,
+      "official_en": "Ash Fall",
+      "official_ja": "降灰",
+      "reserved": false,
+      "token": "ASH_FALL"
+    },
+    {
+      "code": 10,
+      "known": true,
+      "official_en": "Weather",
+      "official_ja": "気象",
+      "reserved": false,
+      "token": "WEATHER"
+    },
+    {
+      "code": 11,
+      "known": true,
+      "official_en": "Flood",
+      "official_ja": "洪水",
+      "reserved": false,
+      "token": "FLOOD"
+    },
+    {
+      "code": 12,
+      "known": true,
+      "official_en": "Typhoon",
+      "official_ja": "台風",
+      "reserved": false,
+      "token": "TYPHOON"
+    },
+    {
+      "code": 14,
+      "known": true,
+      "official_en": "Marine",
+      "official_ja": "海上",
+      "reserved": false,
+      "token": "MARINE"
+    }
+  ],
+  "spec": "IS-QZSS-DCR-016",
+  "table": "4.1.2 disaster category"
+}

@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hoshiguard"
+version = "0.2.7"
+description = "QZSS L1S reliable Bridge receiver and DCR/DCX decoder"
+requires-python = ">=3.10"
+dependencies = ["pyserial>=3.5"]
+
+[project.scripts]
+hoshiguard = "hoshiguard.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["hoshiguard*"]
+
+[tool.setuptools.package-data]
+hoshiguard = ["data/**/*.json", "_vendor/azarashi/LICENSE"]

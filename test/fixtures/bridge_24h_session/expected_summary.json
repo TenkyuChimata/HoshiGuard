@@ -1,0 +1,129 @@
+{
+  "frame_type_distribution": {
+    "HELLO": 1455,
+    "L1S_FRAME": 146520,
+    "STATUS": 8728,
+    "TIME_STATUS": 87249
+  },
+  "l1s": {
+    "frames": 146520,
+    "l1s_crc_errors": 0,
+    "mt_distribution": {
+      "43": 36636,
+      "44": 34190,
+      "47": 2440,
+      "48": 4894,
+      "49": 4877,
+      "50": 63483
+    },
+    "pab_distribution": {
+      "53": 48819,
+      "9A": 48843,
+      "C6": 48858
+    },
+    "structure_errors": 0,
+    "sv_id_distribution": {
+      "2": 28975,
+      "3": 30590,
+      "7": 86955
+    },
+    "ubx_checksum_errors": 0,
+    "verification_mismatches": 0
+  },
+  "records": 243952,
+  "sequence": {
+    "duplicates": 0,
+    "epochs": 1,
+    "first": 2708,
+    "gaps": 0,
+    "last": 246659,
+    "out_of_order": 0,
+    "rollovers": 0
+  },
+  "source_sha256": "9aed061fdae28f287d15938b0b78c18bd25aceb4170f4ff9221321e806f1fb56",
+  "status": {
+    "available": true,
+    "bridge_frames_observed_in_status_window": 243892,
+    "checks": {
+      "bridge_dropped_zero": true,
+      "bridge_observed_equals_generated_delta": true,
+      "bridge_observed_equals_sent_delta": true,
+      "critical_dropped_zero": true,
+      "l1s_dropped_zero": true,
+      "l1s_observed_equals_generated_delta": true,
+      "l1s_observed_equals_sent_delta": true
+    },
+    "closed": true,
+    "delta": {
+      "bridge_dropped": 0,
+      "bridge_generated": 243892,
+      "bridge_queued": 243892,
+      "bridge_sent": 243892,
+      "critical_dropped": 0,
+      "encode_errors": 0,
+      "l1s_dropped": 0,
+      "l1s_generated": 146477,
+      "l1s_sent": 146477,
+      "uart_output_bytes": 21515624,
+      "valid_l1s": 146477
+    },
+    "first": {
+      "bridge_dropped": 0,
+      "bridge_generated": 2749,
+      "bridge_queued": 2749,
+      "bridge_sent": 2749,
+      "critical_dropped": 0,
+      "current_baud": 115200,
+      "encode_errors": 0,
+      "gnss_state": 9,
+      "l1s_dropped": 0,
+      "l1s_generated": 2002,
+      "l1s_sent": 2002,
+      "last_error": 0,
+      "pps_abnormal_total": 2,
+      "pps_edges": 669,
+      "pps_lost_total": 2,
+      "pps_state": 2,
+      "queue_high_watermark": 2,
+      "qzss_l1s_received": 2002,
+      "sfrbx_received": 6563,
+      "time_quality": 4,
+      "uart_output_bytes": 254598,
+      "ubx_checksum_errors": 0,
+      "ubx_received": 7956,
+      "uptime_ms": 670000,
+      "valid_l1s": 2002
+    },
+    "first_sequence": 2749,
+    "l1s_frame_observed_in_status_window": 146477,
+    "last": {
+      "bridge_dropped": 0,
+      "bridge_generated": 246641,
+      "bridge_queued": 246641,
+      "bridge_sent": 246641,
+      "critical_dropped": 0,
+      "current_baud": 115200,
+      "encode_errors": 0,
+      "gnss_state": 9,
+      "l1s_dropped": 0,
+      "l1s_generated": 148479,
+      "l1s_sent": 148479,
+      "last_error": 0,
+      "pps_abnormal_total": 2,
+      "pps_edges": 87903,
+      "pps_lost_total": 2,
+      "pps_state": 2,
+      "queue_high_watermark": 4,
+      "qzss_l1s_received": 148479,
+      "sfrbx_received": 722709,
+      "time_quality": 4,
+      "uart_output_bytes": 21770222,
+      "ubx_checksum_errors": 0,
+      "ubx_received": 898572,
+      "uptime_ms": 87940000,
+      "valid_l1s": 148479
+    },
+    "last_sequence": 246641
+  },
+  "zero_l1s_drop_proven": true
+}

@@ -1,0 +1,58 @@
+{
+  "frame_type_distribution": {
+    "HELLO": 62,
+    "L1S_FRAME": 7355,
+    "STATUS": 368,
+    "TIME_STATUS": 3681
+  },
+  "l1s": {
+    "frames": 7355,
+    "l1s_crc_errors": 0,
+    "mt_distribution": {
+      "43": 1839,
+      "44": 1715,
+      "47": 124,
+      "48": 243,
+      "49": 244,
+      "50": 3190
+    },
+    "pab_distribution": {
+      "53": 2451,
+      "9A": 2451,
+      "C6": 2453
+    },
+    "structure_errors": 0,
+    "sv_id_distribution": {
+      "3": 3676,
+      "7": 3679
+    },
+    "ubx_checksum_errors": 0,
+    "verification_mismatches": 0
+  },
+  "records": 11466,
+  "sequence": {
+    "duplicates": 0,
+    "epochs": 1,
+    "first": 351,
+    "gaps": 0,
+    "last": 11816,
+    "out_of_order": 0,
+    "rollovers": 0
+  },
+  "source_sha256": "dc8ab9a890278e64db1db0d1fa0bae1e56c03b8dc48066cdc7e9f03926885c89",
+  "status_closed": true,
+  "status_delta": {
+    "bridge_dropped": 0,
+    "bridge_generated": 11431,
+    "bridge_queued": 11431,
+    "bridge_sent": 11431,
+    "critical_dropped": 0,
+    "encode_errors": 0,
+    "l1s_dropped": 0,
+    "l1s_generated": 7333,
+    "l1s_sent": 7333,
+    "uart_output_bytes": 1024546,
+    "valid_l1s": 7333
+  },
+  "zero_l1s_drop_proven": true
+}

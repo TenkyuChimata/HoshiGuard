@@ -1,0 +1,27 @@
+{
+  "schema": "hoshiguard.dcx-test-scenario.v1",
+  "source": "dcx_test_data_details_202607.pdf",
+  "source_sha256": "2e048e17cad7659ae672931b484978a6b82cd8e7de3557b09d4617dc161ccb60",
+  "binary_fixtures_fabricated": false,
+  "status": "test",
+  "schedule_source": "section 1.2.2 table 1 (the later figure labels scenario 3.2 differently; table 1 is retained explicitly)",
+  "schedule_jst": [
+    {"date":"2026-07-07","windows":{"1.1":["13:00","13:30"],"1.2":["13:30","13:56"],"2.1":["14:00","14:12"],"2.2":["14:15","14:27"],"3.1":["14:30","14:42"],"3.2":["14:42","14:54"]}},
+    {"date":"2026-07-23","windows":{"1.1":["10:00","10:30"],"1.2":["10:30","10:56"],"2.1":["11:00","11:12"],"2.2":["11:15","11:27"],"3.1":["11:30","11:42"],"3.2":["11:42","11:54"]}}
+  ],
+  "scenarios": [
+    {"id":"1.1","provider":1,"provider_name":"FMMC","hazards":{"start":1,"end":60},"severity":[0,1,2,3],"main_ellipse":false,"ex":[1,2]},
+    {"id":"1.2","provider":1,"provider_name":"FMMC","hazards":{"start":61,"end":113},"severity":[0,1,2,3],"main_ellipse":true,"ex":[1,2]},
+    {"id":"2.1","provider":2,"provider_name":"FDMA","hazards":[113],"severity":[0],"guidance_count":10,"ex":[8,9],"target_area_patterns":{"prefecture":10,"municipality":4}},
+    {"id":"2.2","provider":3,"provider_name":"Related Ministries","hazards":[113],"severity":[0],"guidance_count":10,"ex":[8,9],"target_area_patterns":{"prefecture":10,"municipality":4}},
+    {"id":"3.1","provider":4,"provider_name":"Local Government","hazards":[68,74,82],"severity":[0,1,2,3],"guidance_count":10,"main_ellipse":true,"additional_ellipse":true,"ex":[1,2,3,4,5,6,7]},
+    {"id":"3.2","provider":4,"provider_name":"Local Government","hazards":[68,74,82],"severity":[0,1,2,3],"guidance_count":10,"main_ellipse":true,"additional_ellipse":false,"ex":[1,2,3,4,5,6,7]}
+  ],
+  "required_coverage": {
+    "A4": {"start":1,"end":113},
+    "severity":[0,1,2,3],
+    "providers":[1,2,3,4],
+    "extensions":[1,2,3,4,5,6,7,8,9],
+    "test_status":true
+  }
+}

@@ -1,0 +1,54 @@
+{
+  "schema": "hoshiguard.support-matrix.v2",
+  "verification_levels": ["unsupported", "raw_only", "implemented", "synthetic_verified", "official_scenario_defined", "official_scenario_verified", "real_broadcast_verified"],
+  "bridge": {
+    "implementation": "complete",
+    "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"],
+    "real_hardware_duration_seconds": 87249.12142287,
+    "real_hardware_firmware": "0.2.5",
+    "real_hardware_protocol": "1.0",
+    "real_hardware_session_sha256": "9aed061fdae28f287d15938b0b78c18bd25aceb4170f4ff9221321e806f1fb56",
+    "real_hardware_first_seen": "2026-07-15T09:05:43.328870+00:00",
+    "real_hardware_last_seen": "2026-07-16T09:19:52.450292+00:00",
+    "evidence_scope": "firmware_0.2.5_direct; protocol_and_unchanged_path_inherited_by_0.2.6_and_0.2.7"
+  },
+  "time_path": {
+    "implementation": "complete_limited_qerr",
+    "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"],
+    "real_hardware_duration_seconds": 87249.12142287,
+    "real_hardware_firmware": "0.2.5",
+    "pps_state": "STABLE",
+    "time_quality": "locked_utc_limited"
+  },
+  "dcr": {
+    "spec": "IS-QZSS-DCR-016",
+    "categories": {
+      "1": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "2": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined", "real_broadcast_verified"]},
+      "3": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "4": {"implementation": "complete_bounded_reassembly", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "5": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "6": {"implementation": "complete", "verification": ["implemented", "synthetic_verified"]},
+      "8": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "9": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "10": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "11": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
+      "12": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"]},
+      "14": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"], "evidence": ["v025-session.hgraw", "captures/soak-24h.hgraw"], "real_hardware_frames_24h": 36636, "real_hardware_firmware": "0.2.5"}
+    },
+    "reserved": [0, 7, 13, 15]
+  },
+  "dcx": {
+    "spec": "IS-QZSS-DCX-004/CAMF-1.2",
+    "A1_A18": {"implementation": "complete", "verification": ["implemented", "synthetic_verified"]},
+    "A4_1_113": {"implementation": "complete", "verification": ["implemented", "synthetic_verified"]},
+    "EX1_EX9": {"implementation": "complete", "verification": ["implemented", "synthetic_verified"]},
+    "EX10": {"implementation": "reserved_preserved", "verification": ["implemented", "synthetic_verified"]},
+    "EX11": {"implementation": "raw_only", "verification": ["raw_only"], "wrapper_known": true, "semantics": "raw_only", "blocked_by": "missing_country_specific_spec"},
+    "reassembly": {"implementation": "not_specified_single_frame", "verification": ["implemented", "synthetic_verified"]},
+    "municipality_names": {"implementation": "snapshot", "authoritative": false, "name_source": "snapshot", "verification": ["implemented"]},
+    "null_message": {"implementation": "complete_non_event", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"], "real_hardware_frames_24h": 34121, "real_hardware_firmware": "0.2.5"},
+    "l_alert_ex1": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"], "real_hardware_frames_24h": 69, "real_hardware_firmware": "0.2.5"}
+  },
+  "completion_claim": "Bridge 1.0/path has 24-hour real-hardware evidence from firmware 0.2.5; current 0.2.7 requires a confirming hardware run; only observed semantics are promoted, official July DCR scenarios remain defined rather than received, and EX11 remains raw-only"
+}

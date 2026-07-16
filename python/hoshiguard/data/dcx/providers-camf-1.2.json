@@ -1,0 +1,278 @@
+{
+  "entries": [
+    {
+      "code": 1,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "National Emergency Management Agency",
+      "reserved": false,
+      "token": "NATIONAL_EMERGENCY_MANAGEMENT_AGENCY"
+    },
+    {
+      "code": 2,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Bureau of Meteorology",
+      "reserved": false,
+      "token": "BUREAU_OF_METEOROLOGY"
+    },
+    {
+      "code": 3,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Australian Climate Service",
+      "reserved": false,
+      "token": "AUSTRALIAN_CLIMATE_SERVICE"
+    },
+    {
+      "code": 4,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Geoscience Australia",
+      "reserved": false,
+      "token": "GEOSCIENCE_AUSTRALIA"
+    },
+    {
+      "code": 5,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Commonwealth Scientific and Industrial Research Organisation",
+      "reserved": false,
+      "token": "COMMONWEALTH_SCIENTIFIC_AND_INDUSTRIAL_RESEARCH_ORGANISATION"
+    },
+    {
+      "code": 6,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Australian Bureau of Statistics",
+      "reserved": false,
+      "token": "AUSTRALIAN_BUREAU_OF_STATISTICS"
+    },
+    {
+      "code": 7,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Resilience New South Wales",
+      "reserved": false,
+      "token": "RESILIENCE_NEW_SOUTH_WALES"
+    },
+    {
+      "code": 8,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "State Emergency Service New South Wales",
+      "reserved": false,
+      "token": "STATE_EMERGENCY_SERVICE_NEW_SOUTH_WALES"
+    },
+    {
+      "code": 9,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "New South Wales Rural Fire Service",
+      "reserved": false,
+      "token": "NEW_SOUTH_WALES_RURAL_FIRE_SERVICE"
+    },
+    {
+      "code": 10,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Joint Australian Tsunami Warning Centre",
+      "reserved": false,
+      "token": "JOINT_AUSTRALIAN_TSUNAMI_WARNING_CENTRE"
+    },
+    {
+      "code": 11,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Flood Knowledge Centre",
+      "reserved": false,
+      "token": "FLOOD_KNOWLEDGE_CENTRE"
+    },
+    {
+      "code": 12,
+      "country_region_code": 10,
+      "known": true,
+      "official_en": "Australian Broadcasting Corporation",
+      "reserved": false,
+      "token": "AUSTRALIAN_BROADCASTING_CORPORATION"
+    },
+    {
+      "code": 1,
+      "country_region_code": 71,
+      "known": true,
+      "official_en": "National Disaster Management Office",
+      "reserved": false,
+      "token": "NATIONAL_DISASTER_MANAGEMENT_OFFICE"
+    },
+    {
+      "code": 2,
+      "country_region_code": 71,
+      "known": true,
+      "official_en": "Fiji Meteorological Service",
+      "reserved": false,
+      "token": "FIJI_METEOROLOGICAL_SERVICE"
+    },
+    {
+      "code": 3,
+      "country_region_code": 71,
+      "known": true,
+      "official_en": "Hydrology Section, Fiji Water Authority",
+      "reserved": false,
+      "token": "HYDROLOGY_SECTION_FIJI_WATER_AUTHORITY"
+    },
+    {
+      "code": 4,
+      "country_region_code": 71,
+      "known": true,
+      "official_en": "Mineral Resources Department",
+      "reserved": false,
+      "token": "MINERAL_RESOURCES_DEPARTMENT"
+    },
+    {
+      "code": 5,
+      "country_region_code": 71,
+      "known": true,
+      "official_en": "Fiji Broadcasting Corporation",
+      "reserved": false,
+      "token": "FIJI_BROADCASTING_CORPORATION"
+    },
+    {
+      "code": 1,
+      "country_region_code": 111,
+      "known": true,
+      "official_en": "Foundation for MultiMedia Communications",
+      "reserved": false,
+      "token": "FOUNDATION_FOR_MULTIMEDIA_COMMUNICATIONS"
+    },
+    {
+      "code": 2,
+      "country_region_code": 111,
+      "known": true,
+      "official_en": "Fire and Disaster Management Agency",
+      "reserved": false,
+      "token": "FIRE_AND_DISASTER_MANAGEMENT_AGENCY"
+    },
+    {
+      "code": 3,
+      "country_region_code": 111,
+      "known": true,
+      "official_en": "Related Ministries",
+      "reserved": false,
+      "token": "RELATED_MINISTRIES"
+    },
+    {
+      "code": 4,
+      "country_region_code": 111,
+      "known": true,
+      "official_en": "Local Government",
+      "reserved": false,
+      "token": "LOCAL_GOVERNMENT"
+    },
+    {
+      "code": 1,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Department of Disaster Prevention and Mitigation",
+      "reserved": false,
+      "token": "DEPARTMENT_OF_DISASTER_PREVENTION_AND_MITIGATION"
+    },
+    {
+      "code": 2,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Thai Meteorological Department",
+      "reserved": false,
+      "token": "THAI_METEOROLOGICAL_DEPARTMENT"
+    },
+    {
+      "code": 3,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "National Disaster Warning Center",
+      "reserved": false,
+      "token": "NATIONAL_DISASTER_WARNING_CENTER"
+    },
+    {
+      "code": 4,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Department of Mineral Resources",
+      "reserved": false,
+      "token": "DEPARTMENT_OF_MINERAL_RESOURCES"
+    },
+    {
+      "code": 5,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Navy Hydrographic Department, Royal Thai Navy",
+      "reserved": false,
+      "token": "NAVY_HYDROGRAPHIC_DEPARTMENT_ROYAL_THAI_NAVY"
+    },
+    {
+      "code": 6,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Department of Water Resources",
+      "reserved": false,
+      "token": "DEPARTMENT_OF_WATER_RESOURCES"
+    },
+    {
+      "code": 7,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Royal Irrigation Department",
+      "reserved": false,
+      "token": "ROYAL_IRRIGATION_DEPARTMENT"
+    },
+    {
+      "code": 8,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Department of Pollution Control",
+      "reserved": false,
+      "token": "DEPARTMENT_OF_POLLUTION_CONTROL"
+    },
+    {
+      "code": 9,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Geo-Informatics and Space Technology Development Agency",
+      "reserved": false,
+      "token": "GEO_INFORMATICS_AND_SPACE_TECHNOLOGY_DEVELOPMENT_AGENCY"
+    },
+    {
+      "code": 10,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Electricity Generating Authority of Thailand",
+      "reserved": false,
+      "token": "ELECTRICITY_GENERATING_AUTHORITY_OF_THAILAND"
+    },
+    {
+      "code": 11,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Royal Forest Department",
+      "reserved": false,
+      "token": "ROYAL_FOREST_DEPARTMENT"
+    },
+    {
+      "code": 12,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Department of Parks, Wildlife and Plant Conservation",
+      "reserved": false,
+      "token": "DEPARTMENT_OF_PARKS_WILDLIFE_AND_PLANT_CONSERVATION"
+    },
+    {
+      "code": 13,
+      "country_region_code": 219,
+      "known": true,
+      "official_en": "Water Crisis Prevention Center",
+      "reserved": false,
+      "token": "WATER_CRISIS_PREVENTION_CENTER"
+    }
+  ],
+  "field": "A3",
+  "spec": "CAMF-1.2"
+}

@@ -1,0 +1,666 @@
+{
+  "evidence_source": "real_hardware",
+  "maximum_l1s_gap_seconds": 9.01336032,
+  "privacy": {
+    "coordinates_retained": false,
+    "nav_pvt_retained": false
+  },
+  "schema": "hoshiguard.bridge_24h_fixture.v1",
+  "selected_records": [
+    {
+      "frame_type": "HELLO",
+      "pc_receive_ns": 1784106343328869473,
+      "reasons": [
+        "first HELLO",
+        "hour 0 representative"
+      ],
+      "selected_index": 0,
+      "sequence": 2708,
+      "source_offset": 16,
+      "wire_sha256": "e5e24e6a00c38638e15fe3114170cd7ee95f70e0582ded92f29c2989165412f0"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784106343462203837,
+      "reasons": [
+        "first DCR category 14",
+        "first L1S_FRAME",
+        "first MT43",
+        "first PAB 53",
+        "first event action issued",
+        "first svId 2"
+      ],
+      "selected_index": 1,
+      "sequence": 2709,
+      "source_offset": 134,
+      "sv_id": 2,
+      "wire_sha256": "45822ff3a752fe5df4c8b9e1317059f3764be15a95c2dcfa04283af62fd24d86"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784106343463960878,
+      "reasons": [
+        "first svId 3"
+      ],
+      "selected_index": 2,
+      "sequence": 2710,
+      "source_offset": 260,
+      "sv_id": 3,
+      "wire_sha256": "9809ebd30f49e0191e1d375a431eb2270e36181063fbd8f1e9f582713b2b7671"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784106343715151203,
+      "reasons": [
+        "first svId 7"
+      ],
+      "selected_index": 3,
+      "sequence": 2711,
+      "source_offset": 386,
+      "sv_id": 7,
+      "wire_sha256": "ea50da4d033373d48f0f85b7608cf57969a10b77f59399ab00e31c05ad5af46a"
+    },
+    {
+      "frame_type": "TIME_STATUS",
+      "pc_receive_ns": 1784106344216836055,
+      "reasons": [
+        "first TIME_STATUS"
+      ],
+      "selected_index": 4,
+      "sequence": 2712,
+      "source_offset": 512,
+      "wire_sha256": "cfb053b4a6ce10620a9193d2049ee281b6429e662d23ddddc38ecc39753914e0"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 48,
+      "pab": "9A",
+      "pc_receive_ns": 1784106344441177035,
+      "reasons": [
+        "first MT48",
+        "first PAB 9A"
+      ],
+      "selected_index": 5,
+      "sequence": 2713,
+      "source_offset": 598,
+      "sv_id": 2,
+      "wire_sha256": "7345e0be72d6876376cc895c3a9d82df5308d374f97f50465e76df5729f56899"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 44,
+      "pab": "C6",
+      "pc_receive_ns": 1784106345435373796,
+      "reasons": [
+        "first DCX type null",
+        "first MT44",
+        "first PAB C6"
+      ],
+      "selected_index": 6,
+      "sequence": 2717,
+      "source_offset": 1062,
+      "sv_id": 2,
+      "wire_sha256": "3cd76e6992f5ebfb4aa13c8c4d10fa841795c5c9e3c979543f6a73f86020276e"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 49,
+      "pab": "53",
+      "pc_receive_ns": 1784106346689827271,
+      "reasons": [
+        "first MT49"
+      ],
+      "selected_index": 7,
+      "sequence": 2721,
+      "source_offset": 1526,
+      "sv_id": 2,
+      "wire_sha256": "06083d2a971eb4fe7e9980e849e09e47229c25d4b39b0868639e964b608a90db"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "9A",
+      "pc_receive_ns": 1784106347477159721,
+      "reasons": [
+        "first event action updated"
+      ],
+      "selected_index": 8,
+      "sequence": 2725,
+      "source_offset": 1990,
+      "sv_id": 2,
+      "wire_sha256": "3f7b4ebe09c2aaf8115b939aa665f46b1ae0e885f8c98590d959b6566353a3d8"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 50,
+      "pab": "C6",
+      "pc_receive_ns": 1784106348332320138,
+      "reasons": [
+        "first MT50"
+      ],
+      "selected_index": 9,
+      "sequence": 2729,
+      "source_offset": 2454,
+      "sv_id": 2,
+      "wire_sha256": "499aa969361ba9ce9371288adba8119e4300fc5b77360f83502023809ac487e2"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 47,
+      "pab": "53",
+      "pc_receive_ns": 1784106349468410758,
+      "reasons": [
+        "first MT47"
+      ],
+      "selected_index": 10,
+      "sequence": 2733,
+      "source_offset": 2918,
+      "sv_id": 2,
+      "wire_sha256": "97c9a613c8ff35e4f55a8eca95f5ac0e00ec00613e0585267cfc9b6daeda7ccc"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784106353291333699,
+      "reasons": [
+        "first PPS/time state 2/4",
+        "first STATUS",
+        "queue high-watermark became 2"
+      ],
+      "selected_index": 11,
+      "sequence": 2749,
+      "source_offset": 4774,
+      "wire_sha256": "51dfd81c77660aafcd2c2f30facfc284b2fe4439e1f32e03e171abd20ff72676"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784109943338412500,
+      "reasons": [
+        "hour 1 representative"
+      ],
+      "selected_index": 12,
+      "sequence": 17475,
+      "source_offset": 1721930,
+      "sv_id": 2,
+      "wire_sha256": "142dc3e8af08253c24160f4298b74208f7fd39a4056a29597bba01b4f62c3aff"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784113543342182700,
+      "reasons": [
+        "hour 2 representative"
+      ],
+      "selected_index": 13,
+      "sequence": 28440,
+      "source_offset": 2964792,
+      "wire_sha256": "cfdfebe60f2d6755e1633194a703bdfc8bdee775fe1c059e74e1a2d7ba77e8be"
+    },
+    {
+      "frame_type": "HELLO",
+      "pc_receive_ns": 1784117143387188084,
+      "reasons": [
+        "hour 3 representative"
+      ],
+      "selected_index": 14,
+      "sequence": 37591,
+      "source_offset": 3979114,
+      "wire_sha256": "c082dbd1d4c79531a40776057d28b8c3480a40b0a061b8949f6f5e4dc59b1cca"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784120743758116309,
+      "reasons": [
+        "hour 4 representative"
+      ],
+      "selected_index": 15,
+      "sequence": 45392,
+      "source_offset": 4823312,
+      "sv_id": 7,
+      "wire_sha256": "dd9768690ad7451997203cc134ad560427ea4f79b18f09cd9818b279faaeadfa"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784122032873357352,
+      "reasons": [
+        "first PPS/time state 2/1"
+      ],
+      "selected_index": 16,
+      "sequence": 48127,
+      "source_offset": 5118242,
+      "wire_sha256": "a315263ec8bcf7fd9a843eefa2bf329ff28ea05cdf5aae85c30d88f368da84e2"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784124343601243491,
+      "reasons": [
+        "hour 5 representative"
+      ],
+      "selected_index": 17,
+      "sequence": 53018,
+      "source_offset": 5645468,
+      "sv_id": 7,
+      "wire_sha256": "68e23f06df5b5e9b8907907b39b6dcc4c63dabbf9731b1ee4183028539ced4a0"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784127943515399008,
+      "reasons": [
+        "hour 6 representative"
+      ],
+      "selected_index": 18,
+      "sequence": 60630,
+      "source_offset": 6465860,
+      "sv_id": 7,
+      "wire_sha256": "17af328e01f11f54e9d476bc94befdb3b0f0fe6f7d97ce117c3557de143fdaf5"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784131543715271612,
+      "reasons": [
+        "hour 7 representative"
+      ],
+      "selected_index": 19,
+      "sequence": 70054,
+      "source_offset": 7514564,
+      "sv_id": 7,
+      "wire_sha256": "797797a227b9922765f01908cbce88445e268e958c8a13ffaf59cbfd9c187e19"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784133403023800182,
+      "reasons": [
+        "before queue high-watermark increase"
+      ],
+      "selected_index": 20,
+      "sequence": 75848,
+      "source_offset": 8172968,
+      "wire_sha256": "ba8e02d2b24bd641756ecf54e6e54a7fead12810b29aa172de6e6811c7d03d02"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784133413142870965,
+      "reasons": [
+        "queue high-watermark became 3"
+      ],
+      "selected_index": 21,
+      "sequence": 75880,
+      "source_offset": 8176608,
+      "wire_sha256": "13fe5806f46aca08c499bb6f889864f480ffe53045b78b6d2f300f39a4100731"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784135143531812567,
+      "reasons": [
+        "hour 8 representative"
+      ],
+      "selected_index": 22,
+      "sequence": 81274,
+      "source_offset": 8789564,
+      "sv_id": 7,
+      "wire_sha256": "b7d39b61a6301b2d51534f2be0ef5dbfcb3b771c368dac05947378659e6f111d"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784138743344091702,
+      "reasons": [
+        "hour 9 representative"
+      ],
+      "selected_index": 23,
+      "sequence": 92402,
+      "source_offset": 10052972,
+      "sv_id": 7,
+      "wire_sha256": "79a4cb7fc363779203fb34800fdd083159920cf1a4b4bc038345c8ec391caadb"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784142343431564149,
+      "reasons": [
+        "hour 10 representative"
+      ],
+      "selected_index": 24,
+      "sequence": 102167,
+      "source_offset": 11144642,
+      "sv_id": 7,
+      "wire_sha256": "edf841c469a9b7c91c43b20543fbfea08179ff4970016e7aad4609757d3d4ebc"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784145943565143845,
+      "reasons": [
+        "hour 11 representative"
+      ],
+      "selected_index": 25,
+      "sequence": 109985,
+      "source_offset": 11990990,
+      "sv_id": 7,
+      "wire_sha256": "83e7275f57de3abb57413f55b17c55a2cb0e0630f99933c39f76f841294df7bc"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784149543685414614,
+      "reasons": [
+        "hour 12 representative"
+      ],
+      "selected_index": 26,
+      "sequence": 117765,
+      "source_offset": 12832550,
+      "sv_id": 7,
+      "wire_sha256": "0ccfce300b61565f811b5bb0c55ac1af18fcb6cac3a2d4559b6138aaff646362"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784153143352496321,
+      "reasons": [
+        "hour 13 representative"
+      ],
+      "selected_index": 27,
+      "sequence": 125637,
+      "source_offset": 13685702,
+      "sv_id": 7,
+      "wire_sha256": "79e80764d3175f0b3e551752a0b90a0c7a392e56023261651132beca54f71476"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784156743463362707,
+      "reasons": [
+        "hour 14 representative"
+      ],
+      "selected_index": 28,
+      "sequence": 136466,
+      "source_offset": 14911436,
+      "sv_id": 7,
+      "wire_sha256": "642d1f4110598c208fc8b8d993bc1d0eb5efb6812aee49f06f35ab6e28903a68"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784158179454963091,
+      "reasons": [
+        "before queue high-watermark increase"
+      ],
+      "selected_index": 29,
+      "sequence": 140938,
+      "source_offset": 15419572,
+      "wire_sha256": "d6c8ffbd86dbac12dec46d38491162bbd63ae39b9a7d0e2431b54180abafc80f"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784158189580366228,
+      "reasons": [
+        "queue high-watermark became 4"
+      ],
+      "selected_index": 30,
+      "sequence": 140971,
+      "source_offset": 15423338,
+      "wire_sha256": "e6d853f490d5bdb82f3aed91b8f55fb9ba9920a40e2e6f40fdefca80a5b683ae"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784160343516243066,
+      "reasons": [
+        "hour 15 representative"
+      ],
+      "selected_index": 31,
+      "sequence": 147683,
+      "source_offset": 16186058,
+      "sv_id": 7,
+      "wire_sha256": "c2f9227014b1eade8f06c74f4d1114af3387431754855bc78a6a64aa8e3c4e5f"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784163943510154835,
+      "reasons": [
+        "hour 16 representative"
+      ],
+      "selected_index": 32,
+      "sequence": 158876,
+      "source_offset": 17457656,
+      "sv_id": 2,
+      "wire_sha256": "13331bcc518a5e66c1ad0cfa91cbc6463c6f8a094ddee0f441c056e8f12f9f0d"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784167543340954301,
+      "reasons": [
+        "hour 17 representative"
+      ],
+      "selected_index": 33,
+      "sequence": 170094,
+      "source_offset": 18732404,
+      "sv_id": 7,
+      "wire_sha256": "c20eef5de80b0a7929e9d02e2b34a67c2d78a1d11ae7521dc7fa14624f50ef0e"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784171143518575643,
+      "reasons": [
+        "hour 18 representative"
+      ],
+      "selected_index": 34,
+      "sequence": 181298,
+      "source_offset": 20005404,
+      "sv_id": 7,
+      "wire_sha256": "9067a68e71586cf03041dc181241151eb187c0fe88e00d9b733f4d8e85ea1158"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784174743394177697,
+      "reasons": [
+        "hour 19 representative"
+      ],
+      "selected_index": 35,
+      "sequence": 188920,
+      "source_offset": 20827072,
+      "sv_id": 7,
+      "wire_sha256": "a691fefb45074cc79aadb045c60fe328120eb71e7b1cf6b82ffa8e0e4c9fe985"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 44,
+      "pab": "9A",
+      "pc_receive_ns": 1784177489421307800,
+      "reasons": [
+        "first DCX type l_alert_ex1"
+      ],
+      "selected_index": 36,
+      "sequence": 194741,
+      "source_offset": 21454710,
+      "sv_id": 3,
+      "wire_sha256": "dd6979128e9ae0f3c3c6d6acc39402854cd2bfefbe760e068a93aa75f6077b55"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 50,
+      "pab": "9A",
+      "pc_receive_ns": 1784178050441211711,
+      "reasons": [
+        "before maximum L1S gap"
+      ],
+      "selected_index": 37,
+      "sequence": 196216,
+      "source_offset": 21618944,
+      "sv_id": 3,
+      "wire_sha256": "8ec2a683e2ee1ad26ce4a4b0efbeacc1b0da877521a370eb6fdd5ef74ed6ddee"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "9A",
+      "pc_receive_ns": 1784178059454572031,
+      "reasons": [
+        "after maximum L1S gap"
+      ],
+      "selected_index": 38,
+      "sequence": 196227,
+      "source_offset": 21619986,
+      "sv_id": 7,
+      "wire_sha256": "49bbd7fa99ff12fca087d7452e0a72cf2075fdf966dfd6712d7fd6a0ff08e3b0"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784178343434428668,
+      "reasons": [
+        "hour 20 representative"
+      ],
+      "selected_index": 39,
+      "sequence": 196991,
+      "source_offset": 21705314,
+      "sv_id": 7,
+      "wire_sha256": "52e1d9652c3920ba86d3f5243e1338b9228a00d873cd2c303bfe726710758731"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784181943662826410,
+      "reasons": [
+        "hour 21 representative"
+      ],
+      "selected_index": 40,
+      "sequence": 208012,
+      "source_offset": 22955240,
+      "sv_id": 7,
+      "wire_sha256": "98b1795f8f4039a0a0500a47e537e286473b4e653d87d75aaf2b204d6088cd50"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784185543541342460,
+      "reasons": [
+        "hour 22 representative"
+      ],
+      "selected_index": 41,
+      "sequence": 219228,
+      "source_offset": 24229736,
+      "sv_id": 7,
+      "wire_sha256": "da2f9931a06f6bd28d0846b57ec9e8a752dd4e1f5b6fc8563830e37feacd574d"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784189143609033354,
+      "reasons": [
+        "hour 23 representative"
+      ],
+      "selected_index": 42,
+      "sequence": 230428,
+      "source_offset": 25502216,
+      "sv_id": 7,
+      "wire_sha256": "46024663b3c8d5a352d4d83ddbb4770825f0b6fcd0bd48a950bc06a7ce8b9b0e"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 43,
+      "pab": "53",
+      "pc_receive_ns": 1784192743537043864,
+      "reasons": [
+        "hour 24 representative"
+      ],
+      "selected_index": 43,
+      "sequence": 243164,
+      "source_offset": 26968232,
+      "sv_id": 7,
+      "wire_sha256": "a519f888725db32a8a25d05c353fdcdd2da467e5941f6e3ad47362d3c82006f9"
+    },
+    {
+      "frame_type": "HELLO",
+      "pc_receive_ns": 1784193547813078726,
+      "reasons": [
+        "last HELLO"
+      ],
+      "selected_index": 44,
+      "sequence": 246477,
+      "source_offset": 27354702,
+      "wire_sha256": "a5992749f4e0f451b42c451779338f1f858db81a50af9cfd2760755781d8e80e"
+    },
+    {
+      "frame_type": "STATUS",
+      "pc_receive_ns": 1784193587718054844,
+      "reasons": [
+        "last STATUS"
+      ],
+      "selected_index": 45,
+      "sequence": 246641,
+      "source_offset": 27373806,
+      "wire_sha256": "5a2a1cdf701a9d3ebe00f667ff9bc535421a5ab3214617f7c3b4e7e9188bea87"
+    },
+    {
+      "frame_type": "TIME_STATUS",
+      "pc_receive_ns": 1784193592216293752,
+      "reasons": [
+        "last TIME_STATUS"
+      ],
+      "selected_index": 46,
+      "sequence": 246658,
+      "source_offset": 27375804,
+      "wire_sha256": "a383a4c8b010366663eaa91f19291ec23dce88d16bfa0b78d3ac08e14ce9e0b7"
+    },
+    {
+      "frame_type": "L1S_FRAME",
+      "mt": 50,
+      "pab": "53",
+      "pc_receive_ns": 1784193592450292343,
+      "reasons": [
+        "last L1S_FRAME"
+      ],
+      "selected_index": 47,
+      "sequence": 246659,
+      "source_offset": 27375890,
+      "sv_id": 7,
+      "wire_sha256": "2e011c6b17eb9de4a166d23f0d0fa503b742af1ecc72b50c8d80f1d16d799721"
+    }
+  ],
+  "selection_rule": "first deterministic evidence plus hourly representatives",
+  "source": "real",
+  "source_session": {
+    "bridge_protocol": "1.0",
+    "end_utc": "2026-07-16T09:19:52.450292+00:00",
+    "firmware": "0.2.5",
+    "path": "captures/soak-24h.hgraw",
+    "sha256": "9aed061fdae28f287d15938b0b78c18bd25aceb4170f4ff9221321e806f1fb56",
+    "size_bytes": 27376016,
+    "start_utc": "2026-07-15T09:05:43.328870+00:00"
+  }
+}

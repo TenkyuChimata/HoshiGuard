@@ -1,0 +1,38 @@
+[Unit]
+Description=HoshiGuard QZSS L1S production receiver
+After=dev-hoshiguard.device local-fs.target
+Wants=dev-hoshiguard.device
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=hoshiguard
+Group=hoshiguard
+SupplementaryGroups=dialout
+WorkingDirectory=/opt/hoshiguard
+EnvironmentFile=/etc/hoshiguard/hoshiguard.env
+Environment=PYTHONPATH=/opt/hoshiguard/python
+ExecStart=/usr/bin/python3 -m hoshiguard --port ${HOSHIGUARD_PORT} --baud ${HOSHIGUARD_BAUD} --semantic-observations --repeat-summary --output-directory ${HOSHIGUARD_OUTPUT_DIR} --session-prefix ${HOSHIGUARD_SESSION_PREFIX} --rotate-interval 24h --fsync-interval 30s --health-file /run/hoshiguard/health.json --pid-file /run/hoshiguard/hoshiguard.pid
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+KillSignal=SIGTERM
+UMask=0027
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+ReadWritePaths=/var/lib/hoshiguard /run/hoshiguard
+RuntimeDirectory=hoshiguard
+RuntimeDirectoryMode=0750
+StateDirectory=hoshiguard
+StateDirectoryMode=0750
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target

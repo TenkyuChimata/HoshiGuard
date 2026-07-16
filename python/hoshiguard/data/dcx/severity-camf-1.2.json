@@ -1,0 +1,34 @@
+{
+  "entries": [
+    {
+      "code": 0,
+      "known": true,
+      "official_en": "Unknown",
+      "reserved": false,
+      "token": "UNKNOWN"
+    },
+    {
+      "code": 1,
+      "known": true,
+      "official_en": "Moderate - Possible threat to life or property",
+      "reserved": false,
+      "token": "MODERATE_POSSIBLE_THREAT_TO_LIFE_OR_PROPERTY"
+    },
+    {
+      "code": 2,
+      "known": true,
+      "official_en": "Severe - Significant threat to life or property",
+      "reserved": false,
+      "token": "SEVERE_SIGNIFICANT_THREAT_TO_LIFE_OR_PROPERTY"
+    },
+    {
+      "code": 3,
+      "known": true,
+      "official_en": "Extreme - Extraordinary threat to life or property",
+      "reserved": false,
+      "token": "EXTREME_EXTRAORDINARY_THREAT_TO_LIFE_OR_PROPERTY"
+    }
+  ],
+  "field": "A5",
+  "spec": "CAMF-1.2"
+}
