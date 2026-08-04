@@ -6,6 +6,9 @@ from datetime import datetime, timezone
 from typing import Any
 
 from .._vendor.azarashi.qzss_dcr_lib.decoder.hex_qzss_dcr_decoder import HexQzssDcrDecoder
+from .._vendor.azarashi.qzss_dcr_lib.exception import (
+    QzssDcrDecoderException, QzssDcrDecoderNotImplementedError,
+)
 from ..l1s import VerifiedL1s
 from ..models import json_safe
 from .areas import areas_from_extended
@@ -33,10 +36,9 @@ def decode_dcx(frame: VerifiedL1s, receipt_time: datetime | None = None):
         fields: dict[str, Any] = json_safe(report.get_params())
         fields.pop("message", None)
         fields.pop("raw", None)
-    except Exception as exc:
-        # Structure/raw A/EX fields remain usable even when a future library
-        # version or reserved combination is not semantically supported.
-        fields = {"semantic_error": str(exc)}
+    except (QzssDcrDecoderException, QzssDcrDecoderNotImplementedError,
+            EOFError) as exc:
+        raise DcxDecodeError(str(exc)) from exc
     payload = DcxPayload(camf, extended,
                          tuple(sorted(fields.items(), key=lambda item: item[0])))
     action = {0: "issue", 1: "issue", 2: "update", 3: "clear"}.get(

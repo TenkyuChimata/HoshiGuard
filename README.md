@@ -72,6 +72,13 @@ PYTHONPATH=python python3 -m hoshiguard --bridge-file session.hgraw \
 
 raw archive は、重複排除によって frame を削除することはありません。`frame_fingerprint` は完全な UBX と伝送上の差異を保持します。`semantic_fingerprint_version=2` は PAB、svId、sequence、timestamp、PPS、raw/checksum を除外します。`event_key` には説明可能な業務フィールドのみを使用します。仕様にグローバルなイベント ID が存在しない場合は、誤結合を避けるため `identity_confidence=limited` のままとします。DCX Null は常に `alert=false,action=none` であり、issued を生成しません。
 
+DCX EX9 の 64-bit target-area list を含む任意幅フィールドは、Python の
+MSB-first bit reader で 250-bit L1S 境界内に限って読み取ります。HGRAW は
+意味デコーダより先に保存されます。個々の DCR/DCX frame が明示的な
+`L1sError` / semantic decode error になった場合は、その frame の Human/NDJSON
+だけを省略し、`semantic_decode_errors` と直近エラーを health に記録して後続
+frame を処理します。未知のプログラム不具合を広い例外捕捉で隠しません。
+
 v0.2.7 の各業務オブジェクトには、`stream_mode`、`producer_version`、`semantic_fingerprint_version`、`bridge_protocol_version`、`session_id` が含まれます。ファイルは既定で、有効な `hoshiguard.session.v1` の `session_start` から始まり、正常終了時には `session_end` で閉じられます。旧コンシューマは未知の `record_type` を無視するか、明示的に `--no-session-records` を使用できます。ファイル名を出力モードの証拠として扱うことはありません。
 
 ### 1 時間の実機 Binary Bridge 検証
@@ -457,7 +464,7 @@ L1S 伝送層は、検証済みのパラメータを維持します。MSB-first�
 
 ## テスト
 
-native は 139 項を維持しています。Python package は 80 項、tools は 83 項で、そのうち 4 項は optional external input がないため skip されます。v0.2.7 では v0.2.6 を基準に 58 項を追加し、24 時間 bucket、STATUS 複数ウィンドウの閉合、3 種類の出力ストリーム accounting、rotation/health/disk guard、および既存の実 HGRAW corruption、semantic fingerprint v2、Marine/Null/SLAS、3 種類の出力ストリーム、bounded repeat state、DCR 7 シナリオ/9 カテゴリ、南海トラフ 27 ページ、降灰 5 通/18 地点、not-received 境界をカバーします。
+native は 139 項を維持しています。Python package は 93 項、tools は 83 項で、そのうち 4 項は optional external input がないため skip されます。現在の v0.2.7 回帰には、24 時間 bucket、STATUS 複数ウィンドウの閉合、3 種類の出力ストリーム accounting、rotation/health/disk guard、実 HGRAW corruption、semantic fingerprint v2、Marine/Null/SLAS、bounded repeat state、DCR 7 シナリオ/9 カテゴリ、南海トラフ 27 ページ、降灰 5 通/18 地点、not-received 境界、および実 J-Alert EX9 64-bit fixture と逐 frame semantic-error 隔離が含まれます。
 
 ホスト側 ASan/UBSan は `sh tools/run_native_sanitizers.sh` で実行できます。これは STM32 実機が sanitizer を通過したことを意味せず、すべての業務 enum 組み合わせについて公式バイナリベクトルが存在することも意味しません。
 

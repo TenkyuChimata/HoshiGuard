@@ -1,0 +1,21 @@
+{
+  "schema": "hoshiguard.real_dcx_fixture.v1",
+  "source": "real_hardware",
+  "capture_sha256": "0aae122c5ef52de2a8a96d41a5231dce7ca8e142e3717ea9bcdd5511a5590ed5",
+  "capture_record_offset": 9630,
+  "pc_receive_ns": 1785820509407548534,
+  "bridge_sequence": 2309,
+  "bridge_protocol": "1.0",
+  "firmware": "0.2.7",
+  "sv_id": 3,
+  "pab": "C6",
+  "mt": 44,
+  "provider": 3,
+  "ex8_target_area_list_type": 0,
+  "ex9_target_area_code_list_hex": "FFFFFFFFFFFE0000",
+  "ex9_target_area_code_list": 18446744073709420544,
+  "ex10_reserved": 0,
+  "ubx_hex": "B56202132C0005030100094102000D84B0C6DC86BFE30000002000000000FF1F0000FFFFFFFF030000C0D418EE06995BA3F2072A",
+  "l1s_crc": "1BB863",
+  "coordinates": "not retained"
+}

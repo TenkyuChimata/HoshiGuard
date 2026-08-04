@@ -24,7 +24,20 @@ class L1sError(ValueError):
 
 
 def read_bits(data: bytes, offset: int, width: int, bit_length: int = VALID_BITS) -> int:
-    if width < 0 or width > 32 or offset < 0 or offset + width > bit_length:
+    """Read an unsigned MSB-first field bounded by the declared bit length.
+
+    Python integers are arbitrary precision, so field width is limited only by
+    ``bit_length`` and the supplied storage, not by a machine word size.
+    """
+    if not all(isinstance(value, int) for value in
+               (offset, width, bit_length)):
+        raise L1sError("bit offset, width and length must be integers")
+    storage_bits = len(data) * 8
+    if offset < 0 or width < 0 or bit_length < 0:
+        raise L1sError("bit field outside valid L1S range")
+    if bit_length > storage_bits:
+        raise L1sError("bit length exceeds supplied data")
+    if offset > bit_length or width > bit_length - offset:
         raise L1sError("bit field outside valid L1S range")
     value = 0
     for bit in range(offset, offset + width):

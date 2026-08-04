@@ -22,12 +22,14 @@ from .bridge_protocol import (
     SequenceDisposition, SequenceTracker,
 )
 from .events import EventProcessor
+from .dcr.decoder import DcrDecodeError
 from .dcr.reassembly import NankaiTroughReassembler
-from .l1s import compare_claim, verify_ubx_l1s
+from .dcx.decoder import DcxDecodeError
+from .l1s import L1sError, compare_claim, verify_ubx_l1s
 from .output import NdjsonWriter, RawArchiveReader, RawArchiveWriter, format_human
 from .operational import (DiskGuard, HealthReporter, PidFile, parse_duration,
                           parse_quantity)
-from .routing import make_alert
+from .routing import make_alert, service_for_mt
 from .serial_receiver import SerialReceiver
 
 CAPTURE_RE = re.compile(
@@ -179,6 +181,8 @@ def main(argv: list[str] | None = None) -> int:
                "event_lifecycle_emitted": 0,
                "repeat_summaries_emitted": 0,
                "bridge_verification_mismatches": 0,
+               "semantic_decode_errors": 0,
+               "last_semantic_decode_error": None,
                "semantic_alert_dropped": 0,
                "service_distribution": Counter(),
                "mt_distribution": Counter(),
@@ -190,6 +194,7 @@ def main(argv: list[str] | None = None) -> int:
         "serial_port": args.port, "current_epoch": 0,
         "sequence_gaps": 0, "bridge_crc_errors": 0, "ubx_errors": 0,
         "l1s_crc_errors": 0, "verification_mismatches": 0,
+        "semantic_decode_errors": 0, "last_semantic_decode_error": None,
         "bridge_dropped": 0, "l1s_dropped": 0, "queue_high_watermark": 0,
         "overall_health": "starting", "session_id": session_id,
     }) if args.health_file else None)
@@ -216,20 +221,43 @@ def main(argv: list[str] | None = None) -> int:
                    if args.raw_archive else None)
 
         def emit(frame: BridgeFrame, claim: ClaimedL1sFrame, verified,
-                 bridge_crc: bool) -> None:
+                 bridge_crc: bool) -> bool:
             nonlocal semantic_dropped
-            alert = make_alert(frame, claim, verified, bridge_crc=bridge_crc,
-                               dcr_reassembler=dcr_reassembler)
-            result = events.observe(alert)
             metrics["verified_frame_observations"] += 1
+            try:
+                alert = make_alert(frame, claim, verified, bridge_crc=bridge_crc,
+                                   dcr_reassembler=dcr_reassembler)
+            except (L1sError, DcrDecodeError, DcxDecodeError) as exc:
+                semantic_dropped += 1
+                metrics["semantic_decode_errors"] += 1
+                service = service_for_mt(verified.message_type)[0].value
+                message = str(exc).replace("\r", "\\r").replace("\n", "\\n")
+                error = {
+                    "sequence": frame.sequence,
+                    "mt": verified.message_type,
+                    "service": service,
+                    "exception": type(exc).__name__,
+                    "message": message,
+                }
+                metrics["last_semantic_decode_error"] = error
+                print("semantic_decode_error " + " ".join(
+                    f"{key}={value}" for key, value in error.items()),
+                    file=sys.stderr, flush=True)
+                if health:
+                    health.update(force=True, semantic_decode_errors=(
+                                      metrics["semantic_decode_errors"]),
+                                  last_semantic_decode_error=error,
+                                  overall_health="degraded")
+                return False
+            result = events.observe(alert)
             metrics["service_distribution"][alert.service.value] += 1
             metrics["mt_distribution"][str(alert.receipt.mt)] += 1
             if mode == "semantic" and result.disposition == "repeated":
-                return
+                return True
             if mode == "events" and result.disposition not in (
                     "issued", "updated", "cancelled", "cleared",
                     "part_added", "completed"):
-                return
+                return True
             if mode == "all":
                 result = replace(result, record_type="frame_observation")
                 metrics["all_observations_emitted"] += 1
@@ -244,9 +272,11 @@ def main(argv: list[str] | None = None) -> int:
                 print(format_human(result, args.language, args.detail), flush=True)
             if ndjson:
                 ndjson.write(result)
+            return True
 
         if args.capture_log:
             for frame, claim, verified, bridge_crc, _pc_ns in _legacy_frames(args.capture_log):
+                metrics["received_l1s_frames"] += 1
                 emit(frame, claim, verified, bridge_crc)
         else:
             for frame, pc_ns in _bridge_frames(args, lambda: stopped):
@@ -277,6 +307,8 @@ def main(argv: list[str] | None = None) -> int:
                     stopped = True
                     break
                 if archive and frame.wire:
+                    # Preserve transport evidence before any semantic decoder
+                    # runs. A bad DCR/DCX frame can never prevent HGRAW save.
                     archive.write(frame.wire, pc_ns)
                     if health:
                         health.update(bytes_written=archive.stream.tell())
@@ -324,7 +356,10 @@ def main(argv: list[str] | None = None) -> int:
                 emit(frame, claim, comparison.verified, True)
                 if health:
                     health.update(last_l1s_time=pc_ns,
-                                  overall_health="healthy",
+                                  semantic_decode_errors=metrics[
+                                      "semantic_decode_errors"],
+                                  overall_health=("degraded" if metrics[
+                                      "semantic_decode_errors"] else "healthy"),
                                   ndjson_bytes_written=(ndjson.stream.tell()
                                       if ndjson and ndjson.destination != "-" else None))
         if args.repeat_summary:
@@ -354,23 +389,33 @@ def main(argv: list[str] | None = None) -> int:
         "l1s_frames": metrics["received_l1s_frames"],
         "verified": metrics["verified_frame_observations"],
         "output_objects": metrics["all_observations_emitted"] if mode == "all" else None,
-        "filtered": metrics["bridge_verification_mismatches"],
+        "filtered": (metrics["bridge_verification_mismatches"] +
+                     metrics["semantic_decode_errors"]),
         "unaccounted": (metrics["verified_frame_observations"] -
-                        metrics["all_observations_emitted"] if mode == "all" else 0),
+                        metrics["all_observations_emitted"] -
+                        metrics["semantic_decode_errors"]
+                        if mode == "all" else 0),
     }
     for name in ("service_distribution", "mt_distribution",
                  "record_type_distribution"):
         metrics[name] = dict(sorted(metrics[name].items()))
     if health:
-        health.update(force=True, connected=False, overall_health="stopped",
-                      verification_mismatches=mismatches)
+        degraded = bool(mismatches or metrics["semantic_decode_errors"])
+        health.update(force=True, connected=False, process_state="stopped",
+                      overall_health="degraded" if degraded else "stopped",
+                      verification_mismatches=mismatches,
+                      semantic_decode_errors=metrics["semantic_decode_errors"],
+                      last_semantic_decode_error=metrics[
+                          "last_semantic_decode_error"])
     if args.json_report:
         path = Path(args.json_report)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(metrics, indent=2, sort_keys=True) + "\n",
                         encoding="utf-8")
     if mismatches or semantic_dropped:
-        print(f"summary mismatches={mismatches} semantic_alert_dropped={semantic_dropped}",
+        print(f"summary mismatches={mismatches} "
+              f"semantic_decode_errors={metrics['semantic_decode_errors']} "
+              f"semantic_alert_dropped={semantic_dropped}",
               file=sys.stderr)
     return 0
 

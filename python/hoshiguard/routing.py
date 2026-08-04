@@ -6,9 +6,9 @@ from datetime import datetime, timezone
 
 from .bridge_frames import L1sFrame as ClaimedL1sFrame
 from .bridge_protocol import BridgeFrame
-from .dcr.decoder import DcrDecodeError, decode_dcr
+from .dcr.decoder import decode_dcr
 from .dcr.reassembly import NankaiTroughReassembler
-from .dcx.decoder import DcxDecodeError, decode_dcx
+from .dcx.decoder import decode_dcx
 from .l1s import VerifiedL1s
 from .events.canonical import SEMANTIC_FINGERPRINT_VERSION, semantic_fingerprint
 from .models import (
@@ -79,48 +79,43 @@ def make_alert(bridge: BridgeFrame, claim: ClaimedL1sFrame,
     action = "none"
     category = AlertCode(frame.message_type, f"MT{frame.message_type}", True)
     payload = {"raw_payload_hex": frame.raw.hex().upper()[:57]}
-    try:
-        if service == AlertService.DCR:
-            payload, category, status, action, fields = decode_dcr(
-                frame, reassembler=dcr_reassembler)
-            report_time = fields.get("report_time")
-            times = AlertTimes(issued=str(report_time) if report_time else None)
-            if category.code == 4 and not fields.get("reassembly_complete", False):
-                complete = False
-                unknown.append(UnknownField(
-                    "dcr_continuation", {
-                        "page": fields.get("page_number"),
-                        "total": fields.get("total_page")},
-                    reason="awaiting_bounded_nankai_reassembly"))
-        elif service == AlertService.DCX:
-            payload, category, status, action, fields, areas = decode_dcx(frame)
-            severity = {"code": payload.camf.a5_severity,
-                        "raw": payload.camf.a5_severity}
-            if payload.extended.blocked_by_missing_spec:
-                complete = False
-                for reason in payload.extended.blocked_by_missing_spec:
-                    unknown.append(UnknownField("EX11", dict(payload.extended.raw_fields),
-                                                146, 68, reason))
-            if category.code == 0 and status == "not_applicable":
-                is_alert = False
-                severity = None
-                areas = ()
-                category = AlertCode(0, "NULL_MESSAGE", True, True,
-                                     official_en="Null message")
-        elif service == AlertService.TEST:
-            status, action = "test", "none"
-        elif service == AlertService.NULL:
-            status, action = "not_applicable", "none"
-        elif service in (AlertService.SLAS, AlertService.RESERVED,
-                         AlertService.UNKNOWN):
-            status, action = "not_alert", "none"
-            if service in (AlertService.RESERVED, AlertService.UNKNOWN):
-                unknown.append(UnknownField("message_type", frame.message_type,
-                                            8, 6, "reserved_or_unknown_mt"))
-    except (DcrDecodeError, DcxDecodeError) as exc:
-        semantics = complete = False
-        unknown.append(UnknownField("semantic_payload", frame.raw.hex().upper(),
-                                    14, 212, str(exc)))
+    if service == AlertService.DCR:
+        payload, category, status, action, fields = decode_dcr(
+            frame, reassembler=dcr_reassembler)
+        report_time = fields.get("report_time")
+        times = AlertTimes(issued=str(report_time) if report_time else None)
+        if category.code == 4 and not fields.get("reassembly_complete", False):
+            complete = False
+            unknown.append(UnknownField(
+                "dcr_continuation", {
+                    "page": fields.get("page_number"),
+                    "total": fields.get("total_page")},
+                reason="awaiting_bounded_nankai_reassembly"))
+    elif service == AlertService.DCX:
+        payload, category, status, action, fields, areas = decode_dcx(frame)
+        severity = {"code": payload.camf.a5_severity,
+                    "raw": payload.camf.a5_severity}
+        if payload.extended.blocked_by_missing_spec:
+            complete = False
+            for reason in payload.extended.blocked_by_missing_spec:
+                unknown.append(UnknownField("EX11", dict(payload.extended.raw_fields),
+                                            146, 68, reason))
+        if category.code == 0 and status == "not_applicable":
+            is_alert = False
+            severity = None
+            areas = ()
+            category = AlertCode(0, "NULL_MESSAGE", True, True,
+                                 official_en="Null message")
+    elif service == AlertService.TEST:
+        status, action = "test", "none"
+    elif service == AlertService.NULL:
+        status, action = "not_applicable", "none"
+    elif service in (AlertService.SLAS, AlertService.RESERVED,
+                     AlertService.UNKNOWN):
+        status, action = "not_alert", "none"
+        if service in (AlertService.RESERVED, AlertService.UNKNOWN):
+            unknown.append(UnknownField("message_type", frame.message_type,
+                                        8, 6, "reserved_or_unknown_mt"))
     validity = AlertValidity(bridge_crc, True, frame.valid_crc,
                              frame.valid_pab, semantics, complete)
     # First build the immutable semantic model without identity.  Identity is
