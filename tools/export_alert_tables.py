@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regenerate versioned machine-readable tables from the audited vendor source."""
+"""検証済み vendor ソースから版付きの機械可読テーブルを再生成する。"""
 
 import json
 from pathlib import Path

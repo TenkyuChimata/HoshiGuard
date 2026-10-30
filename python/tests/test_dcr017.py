@@ -1,4 +1,4 @@
-"""Explicitly synthetic, CRC-correct DCR-017 vectors from normative layouts."""
+"""仕様の配置から合成した、CRC の正しい DCR-017 ベクトル。実受信ではない。"""
 from dataclasses import replace
 import json
 from pathlib import Path

@@ -1,2 +1,2 @@
-"""Vendored, license-preserved semantic decoder dependencies."""
+"""元ライセンスを保持して同梱する意味デコーダー依存。"""
 

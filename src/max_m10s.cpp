@@ -5,8 +5,7 @@
 #include "startup_sequence.h"
 
 namespace {
-// MAX-M10S factory UART output is commonly 9600 baud. The other two entries
-// preserve compatibility with existing HoshiGuard and user configurations.
+// MAX-M10S の工場出荷時 UART は通常 9600 baud。他の 2 候補は既存 HoshiGuard と利用者設定の互換性を保つ。
 const uint32_t kBaudCandidates[] = {9600UL, 38400UL, 115200UL};
 const size_t kBaudCandidateCount =
     sizeof(kBaudCandidates) / sizeof(kBaudCandidates[0]);
@@ -173,9 +172,8 @@ void MaxM10s::transition(GnssInitState next, const char *reason,
 }
 
 void MaxM10s::setBaud(uint32_t baud) {
-  // HardwareSerial::end() before the first begin() is unsafe in STM32duino
-  // Core 2.4.0: serial_t::index is still zero (UART1_INDEX), so ending the
-  // unopened USART2 resets USART1 and kills the debug console.
+  // STM32duino Core 2.4.0 では最初の begin() より前の HardwareSerial::end() は危険。
+  // serial_t::index が 0（UART1_INDEX）のままなので、未使用 USART2 の終了が USART1 をリセットして診断出力を停止させる。
   if (shouldEndSerialBeforeBegin(serialStarted_)) serial_.end();
   serial_.begin(baud);
   serialStarted_ = true;
@@ -839,7 +837,7 @@ void MaxM10s::handlePacket(const UbxPacketView &packet, uint32_t nowMs) {
     deadlineMs_ = nowMs;
     transition(GnssInitState::ReadingConfig, "VALSET ACK; verify", nowMs);
   } else {
-    // ACK is the strongest result available on old firmware without VALGET.
+    // VALGET のない旧ファームウェアでは ACK が得られる最も強い証拠。
     printConfigDecision(configItem(), "unreadable", false,
                         ConfigResult::Changed);
     setEvidence(ConfigResult::Changed, false, 0U, true);

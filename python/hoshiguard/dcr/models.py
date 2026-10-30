@@ -1,4 +1,4 @@
-"""Typed MT43 payload families from IS-QZSS-DCR-016."""
+"""IS-QZSS-DCR-016 に基づく MT43 payload の型。"""
 
 from dataclasses import dataclass
 from typing import Any

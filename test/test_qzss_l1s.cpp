@@ -90,8 +90,7 @@ void test_l1s_deduplication_ignores_padding() {
 }
 
 void test_l1s_crc_official_polynomial_sample_vector() {
-  // IS-QZSS-L1S-009 polynomial, independently checked against the supplied
-  // complete frame: stored bits 226..249 are 0x87213B.
+  // IS-QZSS-L1S-009 の多項式を、提供された完全フレームで独立照合済み。格納 bit 226..249 は 0x87213B。
   TEST_ASSERT_EQUAL_HEX32(0x87213B, qzssL1sCrc24(kDcxSample));
   TEST_ASSERT_EQUAL_HEX32(0x87213B, qzssL1sReceivedCrc(kDcxSample));
   uint8_t corrupt[32];

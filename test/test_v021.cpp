@@ -71,7 +71,7 @@ void test_tim_tp_wrong_length_rejected() {
 
 void test_tim_tp_flags_parsing() {
   uint8_t payload[16] = {};
-  payload[14] = 0x1FU;  // UTC, available, RAIM=3, qErr invalid, locked.
+  payload[14] = 0x1FU;  // UTC、利用可能、RAIM=3、qErr 無効、locked。
   payload[15] = 0x47U;
   UbxTimTp result = {};
   TEST_ASSERT_TRUE(parseUbxTimTp(payload, sizeof(payload), result));

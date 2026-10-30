@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Validate received DCR observations against the July 2026 official oracle.
+"""受信 DCR 観測を 2026 年 7 月公式シナリオの期待値と照合する。
 
-The PDF manifest supplies expected scenarios only.  All bit decoding still
-comes from IS-QZSS-DCR-016 through HoshiGuard's normal verified pipeline.
+PDF manifest はシナリオの期待値のみを提供する。ビット解釈は IS-QZSS-DCR-016 に基づく
+HoshiGuard の通常の検証経路で行う。
 """
 
 from __future__ import annotations

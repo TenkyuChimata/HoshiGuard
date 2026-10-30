@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 import sys
 import tempfile
@@ -149,9 +150,21 @@ class DcrJulyScenarioManifestTests(unittest.TestCase):
             self.assertEqual(report["actual_messages_mixed_in"], 1)
             self.assertEqual(report["received_test_messages"], 0)
 
-    def test_manifest_source_hash_matches_real_pdf(self):
+    def test_manifest_source_matches_inventory(self):
+        inventory = json.loads((ROOT / "docs/spec-inventory.json").read_text(encoding="utf-8"))
+        source = next(item for item in inventory["specs"]
+                      if item.get("source_filename") == MANIFEST["oracle"]["source_file"])
+        self.assertEqual(source["sha256"], MANIFEST["oracle"]["sha256"])
+        self.assertFalse(source["repository_copy"])
+        self.assertEqual(source["source"],
+                         "https://qzss.go.jp/technical/dod/dc-report/test-data-distribution.html")
+
+    @unittest.skipUnless(os.environ.get("HOSHIGUARD_DCR_SCENARIO_PDF"),
+                         "外部 PDF 未指定: HOSHIGUARD_DCR_SCENARIO_PDF")
+    def test_manifest_source_hash_matches_external_pdf(self):
         import hashlib
-        self.assertEqual(hashlib.sha256((ROOT / "details_202607.pdf").read_bytes()).hexdigest(),
+        source = Path(os.environ["HOSHIGUARD_DCR_SCENARIO_PDF"])
+        self.assertEqual(hashlib.sha256(source.read_bytes()).hexdigest(),
                          MANIFEST["oracle"]["sha256"])
 
 

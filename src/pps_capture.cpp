@@ -8,8 +8,7 @@ PpsCapture::PpsCapture()
 void PpsCapture::begin() {
   instance_ = this;
   pinMode(PPS_PIN, INPUT);
-  // USE_TIM1_INPUT_CAPTURE is reserved for a board-specific higher precision
-  // backend. Both settings intentionally retain the verified EXTI baseline.
+  // USE_TIM1_INPUT_CAPTURE は基板固有の高精度実装用に予約する。現状はどちらの設定でも検証済みの EXTI 実装を使う。
   attachInterrupt(digitalPinToInterrupt(PPS_PIN), isrThunk, RISING);
 }
 

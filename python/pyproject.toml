@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "hoshiguard"
 version = "0.3.0"
-description = "QZSS L1S reliable Bridge receiver and DCR/DCX decoder"
+description = "QZSS L1S の Bridge 受信・DCR/DCX デコード"
 requires-python = ">=3.10"
 dependencies = ["pyserial>=3.5"]
 

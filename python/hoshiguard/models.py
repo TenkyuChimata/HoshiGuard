@@ -1,4 +1,4 @@
-"""Canonical alert model shared by public projections and diagnostic outputs."""
+"""公開用投影と診断出力が共有する正規の通報モデル。"""
 
 from __future__ import annotations
 

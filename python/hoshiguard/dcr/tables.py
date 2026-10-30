@@ -1,4 +1,4 @@
-"""DCR-016 category metadata; detailed tables live in the attributed vendor tree."""
+"""DCR-016 のカテゴリ情報。詳細テーブルは出所を明示した vendor 配下に置く。"""
 
 from ..models import AlertCode, UnknownField
 from .._vendor.azarashi.qzss_dcr_lib import definition

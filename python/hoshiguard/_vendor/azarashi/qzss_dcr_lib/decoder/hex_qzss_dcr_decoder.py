@@ -22,7 +22,7 @@ class HexQzssDcrDecoder(QzssDcrDecoderBase):
                 'Too Long Sentence',
                 self)
 
-        # converts the message to bytes type
+        # メッセージを bytes 型に変換する
         try:
             self.message = bytes.fromhex(self.sentence + '0')
         except ValueError:
@@ -32,5 +32,5 @@ class HexQzssDcrDecoder(QzssDcrDecoderBase):
 
         self.nmea = self.message_to_nmea()
 
-        # stacks the next decoder
+        # 次のデコーダーを積む
         return QzssDcrDecoder(**self.get_params()).decode()

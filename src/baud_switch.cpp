@@ -59,7 +59,7 @@ BaudSwitchResult evaluateBaudSwitchEvidence(bool enabled,
                                              bool valsetAck,
                                              bool targetMonVer,
                                              bool originalMonVer) {
-  (void)valsetAck;  // ACK proves processing, not communication at the new rate.
+  (void)valsetAck;  // ACK は処理の証拠であり、新 baud での通信を証明しない。
   if (!enabled) return BaudSwitchResult::Disabled;
   if (originalBaud == targetBaud) return BaudSwitchResult::NotNeeded;
   if (targetMonVer) return BaudSwitchResult::Verified;

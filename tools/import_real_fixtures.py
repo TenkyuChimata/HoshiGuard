@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministically import privacy-safe QZSS fixtures from a field capture."""
+"""現場取得からプライバシーに配慮した QZSS fixture を決定的に抽出する。"""
 
 from __future__ import annotations
 
@@ -92,7 +92,7 @@ def select(records: list[replay_ubx.UbxRecord]) -> tuple[list[Selected], list[in
 
     base = bytearray(selected[0].record.packet)
     non_qzss = bytearray(l1ca.packet)
-    non_qzss[6] = 0  # Synthetic GPS gnssId; full source packet was real QZSS.
+    non_qzss[6] = 0  # 合成した GPS gnssId。元の完全 packet は実受信 QZSS。
     non_qzss_packet = _rechecksum(non_qzss)
     selected.append(Selected(
         "non_qzss_negative",
@@ -111,7 +111,7 @@ def select(records: list[replay_ubx.UbxRecord]) -> tuple[list[Selected], list[in
         note="one UBX checksum bit flipped; parser rejection fixture"))
 
     mismatch = bytearray(base)
-    mismatch[10] = 8  # SFRBX numWords, while payload remains the real 9-word length.
+    mismatch[10] = 8  # SFRBX numWords のみを変更し、payload は実受信の 9 word 長を保持する。
     mismatch_packet = _rechecksum(mismatch)
     selected.append(Selected(
         "sfrbx_length_mismatch",

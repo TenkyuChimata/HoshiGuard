@@ -1,8 +1,8 @@
-"""HoshiGuard Bridge v1 framing.
+"""HoshiGuard Bridge v1 のフレーム処理。
 
-Wire records are COBS(logical-frame) followed by 0x00.  The logical frame
-ends with little-endian CRC-32/ISO-HDLC (poly=0x04C11DB7, init=0xffffffff,
-refin/refout=true, xorout=0xffffffff; reflected poly=0xedb88320).
+wire record は COBS(logical-frame) と末尾 0x00。論理フレームの末尾は
+リトルエンディアンの CRC-32/ISO-HDLC（poly=0x04C11DB7、init=0xffffffff、
+refin/refout=true、xorout=0xffffffff、反転 poly=0xedb88320）。
 """
 
 from __future__ import annotations
@@ -47,7 +47,7 @@ class FrameType(IntEnum):
 
 
 def crc32_iso_hdlc(data: bytes) -> int:
-    """Return CRC-32/ISO-HDLC; check value for b'123456789' is CBF43926."""
+    """CRC-32/ISO-HDLC を返す。b'123456789' の検査値は CBF43926。"""
     return zlib.crc32(data) & 0xFFFFFFFF
 
 
@@ -170,7 +170,7 @@ class StreamStats:
 
 
 class StreamDecoder:
-    """Delimiter-resynchronizing decoder for arbitrarily fragmented reads."""
+    """任意に分割された読み取りを区切り文字で再同期するデコーダー。"""
 
     def __init__(self, maximum: int = MAX_ENCODED_FRAME):
         self.maximum = maximum

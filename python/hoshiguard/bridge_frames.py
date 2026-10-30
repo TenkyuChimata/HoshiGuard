@@ -1,4 +1,4 @@
-"""Typed Bridge v1 payloads."""
+"""Bridge v1 payload の型定義。"""
 
 from __future__ import annotations
 

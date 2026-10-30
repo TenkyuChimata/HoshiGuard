@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:hoshiguard:public-alert:v1",
-  "title": "PublicAlert v1",
+  "title": "PublicAlert v1 公開通報形式",
   "type": "object",
   "additionalProperties": true,
   "required": [

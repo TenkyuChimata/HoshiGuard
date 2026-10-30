@@ -1,8 +1,7 @@
-"""Bounded, atomic public state shared by the receiver and HTTP/WS threads.
+"""受信と HTTP/WS が共有する、上限付きで原子的な公開状態。
 
-The receiver never awaits clients. Queues contain references to pre-encoded
-commits; one coalesced event-loop callback wakes all subscribers. Overflow
-forces resynchronisation instead of silently losing an intermediate cancel.
+受信側はクライアントを待たない。キューはエンコード済みの確定データへの参照を持ち、
+集約したイベントループ callback が全購読を起こす。超過時は再同期を要求し、途中の取消を黙って失わない。
 """
 from __future__ import annotations
 
@@ -116,7 +115,7 @@ class AlertStore:
             self._wake_pending = True
             try:
                 self._loop.call_soon_threadsafe(self._wake)
-            except RuntimeError:  # shutdown raced with a final receiver status
+            except RuntimeError:  # 終了処理と最後の受信状態更新が競合した場合
                 self._wake_pending = False
 
     def _expire_locked(self) -> None:
@@ -144,8 +143,7 @@ class AlertStore:
         if len(encoded.encode("utf-8")) > 65536:
             self.error("decode_errors", "public_size_limit")
             return None
-        # No reliable event ID is carried in most reports. Keep each message
-        # state independently, retaining explicit action and correlation hint.
+        # 多くの通報に信頼できるイベント ID はない。明示的な action と関連付けの手掛かりを残し、通報ごとの状態を独立して保持する。
         state_key = (f"{alert.service.value}:{public.status}:{alert.identity.event_key}"
                      if alert.identity.confidence == "spec_scoped" else public.id)
         with self._lock:
@@ -222,7 +220,7 @@ class AlertStore:
             self._broadcast_locked("status", encode(value))
 
     def refresh_health(self) -> None:
-        # Only health expiry uses a timer. Business publication is event driven.
+        # タイマーは健全性の期限判定にのみ使い、業務公開はイベント駆動とする。
         with self._lock:
             self._expire_locked()
             self._notify_health_locked()
@@ -261,8 +259,7 @@ class AlertStore:
                 raise OverflowError("client limit")
             self._expire_locked()
             sub = Subscription(status_filter=status)
-            # Snapshot and registration share the same commit lock. Nothing can
-            # be lost or delivered twice at the snapshot/live boundary.
+            # snapshot と購読登録は同じ確定ロックを使い、snapshot/live の境界で欠落や二重配送を起こさない。
             available = [r for r in reversed(self._states.values())
                          if status == "all" or r.status == status]
             records = available[:100]

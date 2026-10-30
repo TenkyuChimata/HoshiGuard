@@ -1,8 +1,7 @@
-"""IS-QZSS-DCX-004 Extended Message fields.
+"""IS-QZSS-DCX-004 Extended Message のフィールド。
 
-EX11 is the 68-bit outside-Japan extension. DCX-004 intentionally leaves its
-semantic layout to the relevant country/region; HoshiGuard retains those bits
-and marks them blocked instead of inventing fields.
+EX11 は日本以外の 68 bit 拡張。意味の配置は各国・地域の仕様に委ねられるため、
+原 bit を保持して未対応と明示し、フィールドを推測しない。
 """
 
 from __future__ import annotations
@@ -16,7 +15,7 @@ def decode_extended(raw: bytes, camf: CamfFields) -> ExtendedFields:
     extension_is_zero = (read_bits(raw, 146, 32) == 0 and
                          read_bits(raw, 178, 32) == 0 and
                          read_bits(raw, 210, 4) == 0)
-    # DCX-004 Null keeps A2=111 (Japan); all other A/EX payload fields are zero.
+    # DCX-004 Null は A2=111（日本）を保持し、他の A/EX payload はすべて 0。
     if all(value == 0 for index, value in enumerate(camf.__dict__.values())
            if index != 1) and camf.a2_country_region == 111 and extension_is_zero:
         return ExtendedFields("null", (), version)

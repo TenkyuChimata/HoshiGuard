@@ -1,4 +1,4 @@
-"""Recoverable, checksummed HoshiGuard raw Bridge archive."""
+"""破損から復帰でき、チェックサムを持つ HoshiGuard raw Bridge アーカイブ。"""
 
 from __future__ import annotations
 
@@ -78,9 +78,7 @@ class RawArchiveWriter:
             self.stream.write(header)
             self._digest.update(header)
         else:
-            # Existing files are only scanned once when a process resumes.
-            # Rotated segments use fresh unique names, so the hot rotation path
-            # never re-reads a potentially large archive.
+            # 既存ファイルはプロセス再開時に一度だけ走査する。分割ファイルは新しい一意な名前とし、分割のたびに巨大なアーカイブを再読しない。
             with self.path.open("rb") as source:
                 for chunk in iter(lambda: source.read(1024 * 1024), b""):
                     self._digest.update(chunk)
@@ -110,7 +108,7 @@ class RawArchiveWriter:
         assert self.stream is not None
         if not wire.endswith(b"\0"):
             raise ValueError("archive requires a complete delimited Bridge frame")
-        decode_wire(wire)  # archive only structurally valid Bridge records
+        decode_wire(wire)  # 構造が正しい Bridge レコードのみ保存する
         pc_receive_ns = time.time_ns() if pc_receive_ns is None else pc_receive_ns
         body = struct.pack("<QI", pc_receive_ns, len(wire)) + wire
         record = RECORD_MAGIC + struct.pack("<I", len(body) + 4) + body
@@ -157,7 +155,7 @@ class RawArchiveReader:
 
     @staticmethod
     def _find_magic(stream, start: int) -> int | None:
-        """Scan forward in bounded chunks; never load the archive wholesale."""
+        """上限付き chunk で前方走査し、アーカイブ全体を読み込まない。"""
         stream.seek(start)
         overlap = b""
         absolute = start

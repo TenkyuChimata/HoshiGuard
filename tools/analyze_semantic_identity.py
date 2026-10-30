@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Diagnose legacy/current semantic identity from an NDJSON stream."""
+"""NDJSON から旧版・現行版の意味識別を診断する。"""
 
 from __future__ import annotations
 

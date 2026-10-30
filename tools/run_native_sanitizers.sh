@@ -40,7 +40,6 @@ c++ -std=gnu++11 -Wall -Wextra -Wpedantic -Wformat=2 \
   "$ROOT/test/test_v025.cpp" \
   "$BUILD/unity.o" -o "$BUILD/hoshiguard-tests"
 
-# LeakSanitizer cannot operate under the managed runner's ptrace boundary;
-# AddressSanitizer and UndefinedBehaviorSanitizer remain enabled.
+# 管理実行環境の ptrace 制約により LeakSanitizer は動作しない。AddressSanitizer と UndefinedBehaviorSanitizer は有効のままとする。
 ASAN_OPTIONS=detect_leaks=0 UBSAN_OPTIONS=print_stacktrace=1 \
   "$BUILD/hoshiguard-tests"

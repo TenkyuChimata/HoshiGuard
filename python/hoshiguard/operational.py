@@ -1,4 +1,4 @@
-"""Production runtime helpers with atomic state and explicit disk policy."""
+"""原子的な状態更新と明示的なディスク方針を備えた運用補助。"""
 
 from __future__ import annotations
 
@@ -52,7 +52,7 @@ class DiskDecision:
 
 
 class DiskGuard:
-    """Raw archive wins over derived output; never silently corrupt a file."""
+    """派生出力より raw 証跡を優先し、黙ってファイルを破損させない。"""
 
     def __init__(self, directory: str | Path, warning_bytes: int,
                  critical_bytes: int, stop_bytes: int,

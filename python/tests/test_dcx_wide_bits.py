@@ -41,14 +41,14 @@ def j_alert_raw(provider: int) -> bytes:
     set_bits(raw, 0, 8, 0x53)
     set_bits(raw, 8, 6, 44)
     set_bits(raw, 24, 2, 1)       # A1
-    set_bits(raw, 26, 9, 111)     # A2 Japan
+    set_bits(raw, 26, 9, 111)     # A2 日本
     set_bits(raw, 35, 5, provider)
     set_bits(raw, 40, 7, 44)      # A4
     set_bits(raw, 47, 2, 2)       # A5
     set_bits(raw, 146, 1, 1)      # EX8
     set_bits(raw, 147, 64, EX9_VALUE)
     set_bits(raw, 211, 3, 5)      # EX10
-    set_bits(raw, 214, 6, 7)      # library version
+    set_bits(raw, 214, 6, 7)      # ライブラリ版
     set_bits(raw, 226, 24, crc24(bytes(raw)))
     return bytes(raw)
 

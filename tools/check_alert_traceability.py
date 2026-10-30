@@ -7,8 +7,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    dcx = (ROOT / "docs/dcx_mt44_traceability.md").read_text(encoding="utf-8")
-    dcr = (ROOT / "docs/dcr_mt43_traceability.md").read_text(encoding="utf-8")
+    dcx = dcr = (ROOT / "docs/protocol.md").read_text(encoding="utf-8")
     missing = [name for name in [*(f"A{i}" for i in range(1, 19)),
                                   *(f"EX{i}" for i in range(1, 12))]
                if name not in dcx]

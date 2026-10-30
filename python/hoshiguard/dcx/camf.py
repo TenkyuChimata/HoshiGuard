@@ -1,4 +1,4 @@
-"""CAMF Issue 1.2 field extraction. Bit zero is the L1S MSB."""
+"""CAMF Issue 1.2 のフィールド抽出。bit 0 は L1S の MSB。"""
 
 from __future__ import annotations
 

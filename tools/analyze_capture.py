@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Analyze HoshiGuard captures with canonical full-UBX and text counters split."""
+"""完全な UBX packet とテキストの集計を分けて捕捉データを分析する。"""
 
 from __future__ import annotations
 
@@ -188,7 +188,7 @@ def analyze_lines(lines: Iterable[str], input_info: Optional[capture_io.CaptureI
             GNSS_NAMES.get(key, f"unknown_{key}"): value
             for key, value in sorted(text_gnss.items())
         },
-        # Backward-compatible key: now explicitly means complete UBX packets.
+        # 互換性のための key。現在は完全な UBX packet のみを意味する。
         "gnss": {GNSS_NAMES.get(key, f"unknown_{key}"): value
                  for key, value in sorted(canonical_gnss.items())},
         "qzss": {

@@ -65,7 +65,7 @@ bool LogArbiter::enqueueRecord(LogPriority priority, const char *data,
     stats_.maxPendingBytes = static_cast<uint32_t>(queue_.maxPendingBytes());
   if (queue_.maxCount() > stats_.queueHighWatermark)
     stats_.queueHighWatermark = static_cast<uint32_t>(queue_.maxCount());
-  // Opportunistically start the UART without waiting for the next loop.
+  // 次のループを待たず、可能なら UART 送信を開始する。
   pump();
   return true;
 }

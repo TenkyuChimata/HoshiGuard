@@ -1,7 +1,6 @@
-"""Streaming long-run audit for Bridge archives.
+"""Bridge アーカイブの長期ストリーミング検証。
 
-The analyzer keeps counters and bounded identity state; it never loads the
-archive or the complete observation stream into memory.
+カウンターと上限付きの識別状態だけを保持し、アーカイブや全観測列をメモリに展開しない。
 """
 
 from __future__ import annotations
@@ -232,7 +231,7 @@ def analyze_soak(path: str, *, hourly_seconds: int = 3600) -> dict[str, Any]:
             statuses.append((pc, frame.sequence, typed))
             if first_status is None:
                 first_status = typed
-                before_status_records -= 1  # first STATUS is the boundary
+                before_status_records -= 1  # 最初の STATUS が境界
             if previous_status is not None:
                 p_pc, p_seq, p_status = previous_status
                 delta = _delta(p_status, typed)
@@ -261,10 +260,8 @@ def analyze_soak(path: str, *, hourly_seconds: int = 3600) -> dict[str, Any]:
                 strict_closed = all(checks.values())
                 closure_checks = {
                     **checks, **adjusted_checks,
-                    # A STATUS payload snapshots counters before its own record
-                    # has necessarily drained. Generated/observed is the exact
-                    # per-window boundary; sent is exact after carrying the
-                    # bounded in-flight backlog across the boundary.
+                    # STATUS は自身のレコードの送信完了前にカウンターを取得し得る。generated/observed は窓の厳密な境界に対応する。
+                    # sent は上限のある未送信分を境界間で引き継いで比較する。
                     "queue_adjusted_closure": all(adjusted_checks.values()),
                 }
                 adjusted_closed = all((
@@ -407,10 +404,8 @@ def analyze_soak(path: str, *, hourly_seconds: int = 3600) -> dict[str, Any]:
             dcr_status[alert.status] += 1
             dcr_action[alert.action] += 1
             fields = dict(alert.payload.fields) if hasattr(alert.payload, "fields") else {}
-            # DCR decoders expose the normative numeric Rc/It as ``*_no``.
-            # Older adapters used ``*_raw`` or the abbreviated field name;
-            # accept all three spellings so coverage reports do not silently
-            # lose codes that are present in the canonical payload.
+            # DCR は仕様上の数値 Rc/It を ``*_no`` として公開する。
+            # 旧 adapter の ``*_raw`` と略記も受理し、payload にあるコードを集計から欠落させない。
             for key in ("report_classification_no", "report_classification_raw", "Rc"):
                 if key in fields:
                     dcr_rc[str(fields[key])] += 1
@@ -612,24 +607,24 @@ def markdown_summary(report: dict[str, Any]) -> str:
     l1s = report["l1s"]
     status = report["status"]
     return "\n".join((
-        "# HoshiGuard 24-hour soak certification",
+        "# HoshiGuard 長時間受信証跡の検証",
         "",
-        f"- Evidence: `{report['evidence_source']}`; firmware "
+        f"- 証跡: `{report['evidence_source']}`; ファームウェア "
         f"`{report['firmware_evidence']['firmware']}`; Bridge 1.0",
-        f"- Source SHA-256: `{report['source']['sha256']}`",
-        f"- Duration: {report['duration_seconds']:.3f} seconds",
-        f"- Records / L1S: {report['records']} / {l1s['frames']}",
-        f"- Sequence: {sequence['first']}..{sequence['last']}; "
+        f"- 元データ SHA-256: `{report['source']['sha256']}`",
+        f"- 期間: {report['duration_seconds']:.3f} 秒",
+        f"- レコード数 / L1S: {report['records']} / {l1s['frames']}",
+        f"- sequence: {sequence['first']}..{sequence['last']}; "
         f"gaps={sequence['gaps']}, duplicate={sequence['duplicates']}, "
         f"out-of-order={sequence['out_of_order']}",
-        f"- STATUS windows: {status['window_count']}; failed={status['failed_windows']}",
-        f"- Outside closed window: `{json.dumps(status['outside_closed_status_window'])}`",
-        f"- Queue high watermark: {status['queue_high_watermark']}",
-        f"- Maximum L1S gap: {report['timestamps']['maximum_l1s_gap']['seconds']:.3f} s",
-        f"- Peak 1-second utilization at 115200 8N1: "
+        f"- STATUS 区間数: {status['window_count']}; failed={status['failed_windows']}",
+        f"- STATUS 比較区間の外側: `{json.dumps(status['outside_closed_status_window'])}`",
+        f"- キュー最大使用数: {status['queue_high_watermark']}",
+        f"- 最大 L1S 受信間隔: {report['timestamps']['maximum_l1s_gap']['seconds']:.3f} s",
+        f"- 115200 8N1 の 1 秒窓での最大使用率: "
         f"{report['throughput']['peak_1s_115200_utilization']:.2%}",
-        f"- Zero L1S drop proven: **{report['zero_l1s_drop_proven']}**",
-        f"- Verdict: **{report['final_verdict']}**",
+        f"- L1S 欠落なしを確認: **{report['zero_l1s_drop_proven']}**",
+        f"- 判定: **{report['final_verdict']}**",
         "",
-        "Signal availability gaps are reported separately and are not Bridge drops.",
+        "信号の受信間隔は別途報告し、Bridge の欠落とは区別します。",
     )) + "\n"

@@ -1,4 +1,4 @@
-"""Public projection of UnifiedAlert. No transport evidence or second decoder."""
+"""UnifiedAlert の公開用投影。伝送証跡を含めず、再デコードしない。"""
 
 from __future__ import annotations
 
@@ -30,7 +30,7 @@ def utc_iso(ns: int) -> str:
 
 
 def _utc_dates(value: Any) -> Any:
-    """The vendor's naive DCR dates represent UTC, never local device time."""
+    """vendor のタイムゾーンなし DCR 日時は UTC を示し、端末のローカル時刻ではない。"""
     if isinstance(value, str) and _DATE.match(value):
         parsed = datetime.fromisoformat(value)
         return parsed.replace(tzinfo=timezone.utc).isoformat() if parsed.tzinfo is None else parsed.astimezone(timezone.utc).isoformat()
@@ -74,8 +74,7 @@ class PublicAlert:
             fields = {name: _utc_dates(value) for name, value in alert.payload.fields
                       if name not in _PRIVATE_FIELDS}
             if fields.get("assumptive") is True:
-                # DCR-017 Table 4.1.2-5: De=10/Ma=10 are fixed markers for
-                # an assumptive hypocenter, not measured 10 km / M1.0.
+                # DCR-017 表 4.1.2-5: De=10/Ma=10 は推定震源の固定マーカーであり、実測 10 km / M1.0 ではない。
                 fields["depth_of_hypocenter"] = None
                 fields["magnitude"] = None
                 fields["measurement_basis"] = "assumptive_hypocenter_placeholders"
@@ -100,14 +99,13 @@ class PublicAlert:
         elif isinstance(alert.payload, DcxPayload):
             camf = alert.payload.camf
             if alert.category.code in (13, 113):
-                # Explicit siren/test hazards stay in the public test domain,
-                # even if the sender put A1=Alert. A1 remains in raw CAMF.
+                # 明示的な siren/test 災害は A1=Alert でも公開の test 範囲に入れる。A1 は raw CAMF に保持する。
                 status = "test"
             decoded = dict(alert.payload.decoded_fields)
             source["provider"] = {"code": camf.a3_provider,
                                    "name": decoded.get("a3_provider_identifier"),
                                    "country_region_code": camf.a2_country_region}
-            # CAMF carries a relative week/minute, not a globally dated issue time.
+            # CAMF は相対週・分を持ち、絶対日付付きの発表時刻は持たない。
             times.update(onset_raw={"week": camf.a6_onset_week,
                                     "minute_of_week": camf.a7_onset_minute_of_week},
                          duration_code=camf.a8_duration)
@@ -115,8 +113,7 @@ class PublicAlert:
                         "name": ("unknown", "moderate", "severe", "extreme")[camf.a5_severity]}
             extension_fields = dict(alert.payload.extended.raw_fields)
             if "EX9_target_area_code_list" in extension_fields:
-                # Exact representation for clients whose JSON number type
-                # cannot preserve all 64 bits (for example JavaScript).
+                # JSON 数値で 64 bit 全体を保持できないクライアント（JavaScript 等）向けの正確な表現。
                 extension_fields["EX9_target_area_code_list_hex"] = f'{extension_fields["EX9_target_area_code_list"]:016X}'
             payload = {"type": alert.category.token.lower() if alert.category.token else "unknown",
                        "camf": json_safe(camf),

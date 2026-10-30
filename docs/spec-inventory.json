@@ -10,9 +10,9 @@
       "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-l1s-009.pdf",
       "tier": 1,
       "used_by": [
-        "STM32 L1S",
+        "STM32 L1S 検証",
         "python/hoshiguard/l1s.py",
-        "routing"
+        "MT 振り分け"
       ],
       "complete": true,
       "repository_copy": false
@@ -38,7 +38,8 @@
       "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-dcr-017.pdf",
       "tier": 1,
       "used_by": [
-        "DCR-017 additive time/code fixes; docs/dcr017_audit.md"
+        "python/hoshiguard/dcr",
+        "docs/protocol.md"
       ],
       "complete": true,
       "repository_copy": false
@@ -65,80 +66,66 @@
       "tier": 1,
       "used_by": [
         "python/hoshiguard/dcx/camf.py",
-        "DCX code tables"
+        "DCX コード表"
       ],
       "complete": true,
       "repository_copy": false
     },
     {
-      "name": "Disaster and Crisis Management App Note",
-      "version": "2.0 / DCR-013 basis",
-      "published": "unknown",
-      "sha256": "f1a39258a2287fcbf74669247938f1fdbefd387319e07554ebc89b7ab1743904",
-      "source": "user supplied",
-      "local_path": "users-manual_ver2.pdf",
-      "tier": 2,
-      "used_by": [
-        "business-context-only"
-      ],
-      "complete": true,
-      "repository_copy": true
-    },
-    {
-      "name": "DCX July 2026 Test Data Details",
+      "name": "DCX 試験用データ配信情報（2026 年 7 月）",
       "version": "202607",
       "published": "2026-07",
       "sha256": "2e048e17cad7659ae672931b484978a6b82cd8e7de3557b09d4617dc161ccb60",
-      "source": "user supplied",
-      "local_path": "dcx_test_data_details_202607.pdf",
+      "source": "https://qzss.go.jp/technical/dod/dc-report/dcx-test-data-distribution.html",
       "tier": 2,
       "used_by": [
-        "test scenario manifest only"
+        "test/fixtures/dcx_202607/scenario_manifest.json"
       ],
       "complete": true,
-      "repository_copy": true
+      "repository_copy": false,
+      "source_filename": "dcx_test_data_details_202607.pdf"
     },
     {
-      "name": "DCR July 2026 Training/Test Details",
+      "name": "DCR 訓練・試験メッセージ配信情報（2026 年 7 月）",
       "version": "202607",
       "published": "2026-07",
       "sha256": "29b515eca53906e7e3c7002bdf6a942c30673621adc8fccca359d6375b144caa",
-      "source": "user supplied official scenario oracle",
-      "local_path": "details_202607.pdf",
+      "source": "https://qzss.go.jp/technical/dod/dc-report/test-data-distribution.html",
       "tier": 2,
       "used_by": [
-        "DCR scenario manifest and validator only"
+        "test/fixtures/dcr_202607/scenario_manifest.json"
       ],
       "complete": true,
-      "repository_copy": true
+      "repository_copy": false,
+      "source_filename": "details_202607.pdf"
     },
     {
-      "name": "JIS X 0402 current municipality code dataset",
-      "version": "not independently audited",
+      "name": "JIS X 0402 の現行市町村コードデータセット",
+      "version": "独立検証未実施",
       "published": "unknown",
       "sha256": null,
-      "source": "referenced by DCX-004",
+      "source": "DCX-004 が参照",
       "tier": 1,
       "used_by": [
-        "DCX municipality display names"
+        "DCX 市町村の表示名"
       ],
       "complete": false,
       "blocked_by_missing_spec": true,
-      "note": "raw 16-bit codes are decoded; the vendored lookup snapshot is not claimed as the current authoritative JIS dataset"
+      "note": "16 bit の原コードを解読する。名称の同梱スナップショットは現行の権威ある JIS データセットとは主張しない。"
     },
     {
-      "name": "EX11 country-specific semantic libraries",
-      "version": "country dependent",
-      "published": "not defined by DCX-004",
+      "name": "EX11 国別意味定義ライブラリ",
+      "version": "国別仕様に依存",
+      "published": "DCX-004 では未定義",
       "sha256": null,
-      "source": "DCX-004 section 4.1.2.2",
+      "source": "DCX-004 4.1.2.2 節",
       "tier": 1,
       "used_by": [
-        "outside-Japan EX11 semantics"
+        "日本以外の EX11 の意味解析"
       ],
       "complete": false,
       "blocked_by_missing_spec": true,
-      "note": "HoshiGuard retains all 68 raw bits"
+      "note": "68 bit の原値をすべて保持する。"
     }
   ]
 }

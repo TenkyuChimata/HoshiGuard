@@ -307,8 +307,7 @@ def main(argv: list[str] | None = None) -> int:
                     stopped = True
                     break
                 if archive and frame.wire:
-                    # Preserve transport evidence before any semantic decoder
-                    # runs. A bad DCR/DCX frame can never prevent HGRAW save.
+                    # 意味デコード前に伝送証跡を保存する。不正な DCR/DCX でも HGRAW 保存を妨げない。
                     archive.write(frame.wire, pc_ns)
                     if health:
                         health.update(bytes_written=archive.stream.tell())

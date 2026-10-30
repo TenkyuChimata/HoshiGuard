@@ -1,4 +1,4 @@
-"""Synthetic edge cases and bounded-resource invariants for the public pipeline."""
+"""公開処理の合成した境界例と、資源上限の不変条件。"""
 import asyncio
 from dataclasses import replace
 import json
@@ -143,8 +143,31 @@ class BoundaryTests(unittest.TestCase):
 
     def test_public_examples_follow_schema(self):
         validator = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
-        for path in (ROOT / 'docs/examples').glob('*.json'):
+        Draft202012Validator.check_schema(SCHEMA)
+        for path in (ROOT / 'docs/public-alert-real-marine.json',
+                     ROOT / 'docs/public-alert-real-dcx.json'):
             validator.validate(json.loads(path.read_text()))
+
+    def test_public_examples_match_original_hgraw_records(self):
+        from hashlib import sha256
+        from hoshiguard.output.raw_archive import RawArchiveReader
+        cases = (
+            ('marine', 'bridge_real_session', 220,
+             '74b27282f1438cc8e4080f771b36e93ed8bc635cb01d65a632220dcf9575eaa9'),
+            ('dcx', 'bridge_24h_session', 4608,
+             'e5cb12abb3295f981bbc39557a3dbd670eabff51d9eacf341e1cbdc19cdb49ed'),
+        )
+        for name, fixture, offset, digest in cases:
+            with self.subTest(name=name):
+                source = ROOT / 'test/fixtures' / fixture / 'selected_records.hgraw'
+                self.assertEqual(sha256(source.read_bytes()).hexdigest(), digest)
+                record = next(item for item in RawArchiveReader(str(source))
+                              if item.offset == offset)
+                pipeline = ReceiverPipeline(AlertStore(replay=True))
+                result = pipeline.process(record.frame, record.pc_receive_ns)
+                self.assertIsNotNone(result)
+                expected = json.loads((ROOT / f'docs/public-alert-real-{name}.json').read_text())
+                self.assertEqual(json.loads(result.encoded), expected)
 
 
 class NetworkBoundaryTests(unittest.IsolatedAsyncioTestCase):

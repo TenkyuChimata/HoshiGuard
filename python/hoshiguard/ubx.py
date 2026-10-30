@@ -1,4 +1,4 @@
-"""Small independent UBX verifier used at the PC trust boundary."""
+"""PC の信頼境界で使う独立した UBX 検証。"""
 
 from __future__ import annotations
 

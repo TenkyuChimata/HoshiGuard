@@ -55,8 +55,7 @@ struct UbxInjectionResult {
   QzssL1sFrame lastFrame;
 };
 
-// Test/replay entry point. It uses exactly the same UbxParser and dispatcher
-// that the UART path uses, and has no HardwareSerial dependency.
+// テスト・再生用の入口。UART 経路と同じ UbxParser と dispatcher を使い、HardwareSerial に依存しない。
 void injectUbxBytes(const uint8_t *data, size_t length, UbxParser &parser,
                     UbxFrameDispatcher &dispatcher,
                     UbxInjectionResult &result,

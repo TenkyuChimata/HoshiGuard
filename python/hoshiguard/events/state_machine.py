@@ -47,7 +47,7 @@ class RepeatSummary:
 
 
 class EventProcessor:
-    """Bounded semantic/event state; raw archive remains frame-complete."""
+    """上限付きの意味・イベント状態。raw アーカイブは全フレームを保持する。"""
 
     def __init__(self, capacity: int = 65_536,
                  ttl_us: int = 7 * 86_400_000_000,
@@ -70,9 +70,8 @@ class EventProcessor:
     def _expire(self, now_us: int) -> None:
         if self.ttl_us <= 0:
             return
-        # Both OrderedDicts are LRU/last-seen ordered because observe() pops
-        # and reinserts touched entries. Expire only the oldest prefix; a full
-        # scan per frame becomes quadratic during multi-day operation.
+        # observe() が更新要素を取り出して再挿入するため、両 OrderedDict は LRU/最終観測順になる。古い先頭部分だけを失効させる。
+        # 毎フレーム全走査すると長期運用で計算量が二次的に増える。
         while self.semantic:
             key = next(iter(self.semantic))
             item = self.semantic[key]
@@ -97,8 +96,7 @@ class EventProcessor:
                            tuple(sorted(item.pabs or ())), len(item.frames or ()))
 
     def observe(self, alert: UnifiedAlert, *, now_us: int | None = None) -> EventResult:
-        # Runtime supplies a host monotonic clock, independent of MCU epochs
-        # and wall-clock adjustments. Offline diagnostics may use receipt time.
+        # runtime は MCU epoch や壁時計調整から独立したホストの monotonic clock を渡す。オフライン診断では受信時刻も利用できる。
         now_us = alert.receipt.timestamp_us if now_us is None else now_us
         self._expire(now_us)
         fingerprint = alert.identity.semantic_fingerprint
@@ -122,14 +120,11 @@ class EventProcessor:
         self.peak_semantic = max(self.peak_semantic, len(self.semantic))
         if item.repeat_count > 1:
             return self._result("repeated", alert, item)
-        # SLAS monitoring, NULL, reserved and test-mode transport frames are
-        # observations, not disaster-event lifecycle transitions. They still
-        # participate in dedup and raw archival, but must never be labelled
-        # "issued" merely because this is their first occurrence.
+        # SLAS 監視、NULL、予約値、test-mode の伝送フレームは観測であり、災害のライフサイクル遷移ではない。
+        # 重複排除と raw 保存には含めるが、初回出現だけで issued としない。
         if not alert.alert or not alert.validity.semantics:
             return self._result("observed", alert, item)
-        # A limited correlation hint is not evidence of an event lifecycle.
-        # Retain independent reports instead of merging simultaneous disasters.
+        # 信頼度が限られる関連付けの手掛かりはライフサイクルの証明ではない。同時発生の災害を統合せず、独立した通報を保持する。
         key = (alert.status, alert.identity.event_key
                if alert.identity.confidence == "spec_scoped"
                else alert.identity.semantic_fingerprint)

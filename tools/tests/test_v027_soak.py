@@ -31,8 +31,8 @@ class V027SoakTests(unittest.TestCase):
         self.assertEqual(MANIFEST["source_session"]["bridge_protocol"], "1.0")
 
     def test_fixture_does_not_claim_current_firmware_soak(self):
-        text = (FIXTURE / "README.md").read_text()
-        self.assertIn("not a claim", text)
+        text = (ROOT / "test/fixtures/README.md").read_text(encoding="utf-8")
+        self.assertIn("現在のファームウェアの 24 時間実機試験完了を意味しません", text)
 
     def test_fixture_contains_hourly_representatives(self):
         reasons = [reason for item in MANIFEST["selected_records"]

@@ -1,157 +1,167 @@
-# HTTP / WebSocket API v1
+# HTTP / WebSocket API とデータ形式
 
-本进程内的只读接口。默认 `127.0.0.1:8000`。数据来源是独立通过 Bridge、UBX、
-L1S 校验并由唯一解码链生成的 UnifiedAlert。HTTP 不扫描文件，WS 不重复解码。
+同一プロセス内の読み取り専用 API です。受信側が Bridge・UBX・L1S を独立検証し、
+単一のデコード処理から生成した状態を参照します。HTTP はファイルを走査せず、WS は再デコードしません。
+起動と公開設定は[運用ガイド](deployment.md)を参照してください。
 
 ## HTTP
 
-响应使用 `Content-Type: application/json`、`Cache-Control: no-store`；当前不实现
-ETag。方法不允许时 405，参数非法时 400，不存在时 404，限流时 429，连接达到上限
-时 WS 握手返回 503。应用错误只返回稳定错误标识，异常详情在本机日志。
+応答は `Content-Type: application/json`、`Cache-Control: no-store` です。ETag は実装していません。
 
-| 路径 | data |
+| GET パス | 応答 |
 |---|---|
-| `/api/v1/alerts/latest` | 最新匹配的 PublicAlert，无数据时 `null` |
-| `/api/v1/alerts` | 最新在前的 PublicAlert 数组，无数据时 `[]` |
-| `/api/v1/alerts/{id}` | 缓存中的单条语义消息；过期/淘汰后 404、`data:null` |
-| `/api/v1/status` | 直接返回健康对象 |
+| `/api/v1/alerts/latest` | 最新の該当 PublicAlert。該当なしは `data: null` |
+| `/api/v1/alerts` | 新しい順の PublicAlert 配列。該当なしは `data: []` |
+| `/api/v1/alerts/{id}` | キャッシュ内の通報。期限切れ・削除済みは 404、`data: null` |
+| `/api/v1/status` | 健全性を表すオブジェクトを直接返す |
 
-alerts 响应信封：
+通報応答の形式例です。`data` と `status` を省略した説明用の例であり、完全な応答サンプルではありません。
 
 ```json
-{"schema":"hoshiguard.api.v1","process_id":"进程UUID","sequence":17,"data":null,"next_offset":null,"status":{}}
+{"schema":"hoshiguard.api.v1","process_id":"00000000-0000-4000-8000-000000000000","sequence":17,"data":null,"next_offset":null,"status":{}}
 ```
 
-以上为**格式示意**；完整真实数据见 [Marine](examples/public-alert-real-marine.json) 和
-[DCX](examples/public-alert-real-dcx.json)，出处见 [示例说明](examples/README.md)。
+`/alerts` と `/alerts/latest` のクエリ:
 
-`/alerts` 与 `/alerts/latest` 参数：
-
-| 参数 | 取值与默认 |
+| パラメーター | 値・既定値 |
 |---|---|
-| `service` | `DCR` / `DCX`；省略表示两者 |
-| `category` | 响应中 `category.token` 的精确值，例如 `MARINE` / `MISSILE_ATTACK` |
-| `status` | 默认 `actual`；可选 `test`、`unknown`、`all` |
-| `limit` | 1–100，默认 100；latest 总是 1 |
-| `offset` | 0–history-limit，默认 0 |
-| `view` | 默认 `history`；`states` 返回各可保守关联对象的最近状态 |
+| `service` | `DCR` / `DCX`。省略時は両方 |
+| `category` | `category.token` の完全一致。例: `MARINE` / `MISSILE_ATTACK` |
+| `status` | `actual`（既定）/ `test` / `unknown` / `all` |
+| `limit` | 1–100、既定 100。latest は常に 1 |
+| `offset` | 0–history-limit、既定 0 |
+| `view` | `history`（既定）/ `states`。後者は保守的に関連付け可能な単位の最新状態 |
 
-不接受重复或未知参数。每个列表响应最多包含 1MiB 的通报 JSON；按实际返回数
-增加 offset，直至 data 为空。`next_offset` 指向下一次查询偏移，末尾可能还需要一次
-空请求。列表是滚动内存窗口，分页期间若 `sequence` 改变，应重新获取，不能将多次
-请求冒充同一事务。单个响应的 data、sequence、status 在同一状态锁内取样。
+未知・重複パラメーターは 400、許可しないメソッドは 405、該当なしは 404、レート超過は 429 です。
+Origin 拒否は 403、1024 文字超のクエリや本文・Transfer-Encoding 付き要求は 413 です。
+WS の接続上限ではハンドシェイクを 503 で拒否します。アプリケーションエラーは安定した識別子のみを返し、例外詳細はローカルログに記録します。
 
-by-id 查询不按 status 过滤：已经持有训练消息 ID 的客户端可以读取它，但正式默认
-列表和正式 WS 通道不会出现训练消息。接口无认证，不提供管理、写入或调试功能。
+一覧内の通報 JSON は最大 1 MiB です。`next_offset` または実際の返却件数を使って次を取得し、
+空配列まで繰り返してください。末尾確認に追加の空リクエストが必要な場合があります。
+履歴は変動するメモリ窓です。ページング中に `sequence` が変化した場合は再取得してください。
+単一応答の `data`・`sequence`・`status` は同じロック内で取得しますが、複数要求は同一トランザクションではありません。
+
+ID 指定には `status` フィルターがなく、訓練メッセージの ID を持つクライアントはその内容を取得できます。
+正式情報の既定一覧と WS には訓練情報を含めません。認証・管理・書き込み機能はありません。
 
 ## PublicAlert
 
-Schema 为 [`hoshiguard.public-alert.v1`](schema/public-alert.v1.schema.json)。
-内部详细格式 `hoshiguard.alert.v1` 保留给诊断与证据分析。v1扩展可增加字段，
-客户端应忽略未知字段；既有字段的类型和含义若发生破坏性改变需新major版本。
+[JSON Schema](public-alert.v1.schema.json) の識別子は `hoshiguard.public-alert.v1` です。
+v1 の互換拡張ではフィールドを追加できるため、クライアントは未知のフィールドを無視してください。
+既存フィールドの型・意味を破壊的に変更する場合はメジャーバージョンを更新します。
 
-| 字段 | 含义 |
+| フィールド | 意味 |
 |---|---|
-| `schema` | 公开模型版本 |
-| `id` | `sf2-` 加完整 semantic_fingerprint v2；作用域是语义消息内容 |
-| `source` | QZSS 卫星广播来源；JMA 或 CAMF country/provider 原始代码及已知名称 |
-| `service` | DCR / DCX |
-| `category` | 原始代码、token、known/reserved 和已有的人类可读名称 |
-| `status` | actual / test / unknown；DCR Rc=7、DCX A1=0 及明确的13/113试验灾害类别归test |
-| `action` | issue / update / cancel / clear / unknown |
-| `identity` | semantic fingerprint 版本、`event_id:null`、有限可信度关联线索 |
-| `times` | issued/received/onset/expires、时间依据与必要原始时间码 |
-| `areas` | 通报目标区域代码、名称、kind；不是设备坐标 |
-| `severity` | 规范携带的等级/警报原码及说明；未提供时 null |
-| `payload` | 按灾害类别命名的 type 与该类别字段；不制造缺失震源参数 |
-| `validity` | 传输验证、语义、完整性、类别是否已知及未知字段 |
-| `is_real_disaster` | 正式且已知的灾害业务通报；训练、试验灾害类别不为 true |
-| `provenance` | 规范、live/replay 来源；明确不是 JMA XML 原文 |
+| `schema` | 公開モデルのバージョン |
+| `id` | `sf2-` と完全な semantic fingerprint v2。通報内容を識別 |
+| `source` | QZSS の放送元。JMA または CAMF country/provider の原コードと既知の名称 |
+| `service` | `DCR` / `DCX` |
+| `category` | 原コード、token、known/reserved、利用可能な名称 |
+| `status` | `actual` / `test` / `unknown`。DCR Rc=7、DCX A1=0、試験災害コード 13/113 は `test` |
+| `action` | `issue` / `update` / `cancel` / `clear` / `unknown` |
+| `identity` | fingerprint の版、`event_id: null`、信頼度に制限のある関連付けの手掛かり |
+| `times` | 発表・受信・発生・失効時刻、時間の根拠、必要な原コード |
+| `areas` | 通報対象地域のコード・名称・kind。受信機の座標ではない |
+| `severity` | 仕様に含まれるレベル・警報の原コードと説明。未提供時は `null` |
+| `payload` | 災害別の `type` と各フィールド |
+| `validity` | 伝送検証、意味解析、完全性、カテゴリの既知性、未知フィールド |
+| `is_real_disaster` | 検証を通過した正式かつ既知の災害通報。訓練・試験カテゴリは `false` |
+| `provenance` | 仕様、`live` / `replay`、データ形式。JMA XML 原文ではない |
 
-DCR `payload.type` 包括 earthquake_early_warning、hypocenter、seismic_intensity、
-nankai_trough_earthquake、tsunami、northwest_pacific_tsunami、volcano、ash_fall、
-weather、flood、typhoon、marine；`payload.fields` 保留现有类别解码字段与 `_raw` 值。
-信息类型1的更正在公开action中表示update，原始It=1和Correction标签仍保留。
-EEW的assumptive标记为true时，固定De/Ma=10不作为真实深度/震级，公开值为null，
-原码与measurement_basis保留。
+DCR の `payload.type` は earthquake_early_warning、hypocenter、seismic_intensity、
+nankai_trough_earthquake、tsunami、northwest_pacific_tsunami、volcano、ash_fall、weather、
+flood、typhoon、marine です。`payload.fields` はカテゴリ別の値と `_raw` を保持します。
+It=1 の訂正は公開 `action=update` とし、原値と Correction ラベルも残します。
+EEW の `assumptive=true` では固定マーカー De/Ma=10 を実測深度・マグニチュードと解釈せず、
+公開値を `null` として原値と `measurement_basis` を残します。欠けた震源情報や震度をゼロで補いません。
 
-DCX `payload.type` 来自 CAMF hazard token，例如 missile_attack、earthquake、flood。
-`camf` 保存 A1–A18 原码，`guidance` 提供已解码的指示文字，`extended` 保存对应变体
-及字段。避难指示依赖 provider、A11 和 EX，应读取 guidance，不能只靠 hazard 或 A1。
-明确的siren/test类别即使A1=Alert也进入公开test域，原始A1与内部身份仍保留。
-J-Alert的撤销避难呼吁可能仍是A1=Alert；不会将该文本擅自转成整个灾害的 clear。
-EX9 同时提供固定16位十六进制字符串 `EX9_target_area_code_list_hex`，避免 JavaScript
-等客户端将64bit JSON整数舍入；原始数值仍保留。EX11只保留原始分段值并标记不完整；
-未知库版本不解释其A11文字。
+DCX の `payload.type` は CAMF hazard token に基づきます。`camf` に A1–A18、`guidance` に
+解読した指示文、`extended` に拡張の種類と値を保持します。避難指示は provider・A11・EX に依存するため、
+hazard や A1 だけで判断しないでください。siren/test カテゴリは A1=Alert でも公開範囲を `test` とし、原 A1 と内部識別子は保持します。
+J-Alert の避難呼び掛けの撤回も A1=Alert の場合があり、指示文から災害全体の `clear` を推定しません。
+EX9 は 64 bit 整数に加えて固定 16 桁の `EX9_target_area_code_list_hex` を提供し、JavaScript 等での丸めを避けます。
+EX11 は原値のみを保持して不完全と表示し、未知のライブラリ版では A11 の指示文を解釈しません。
 
-未知/保留值不填 0 或升级成已知值。未支持的业务头不会作为有效公开通报发布；原始
-Bridge 帧仍可归档。已知核心的部分解码可以发布 `complete:false`，客户端必须检查。
-`is_real_disaster` 不表示警报仍在生效，也不是消息真实性的密码学认证。
+未知・予約値は原値を保持します。未対応の業務ヘッダーは有効な公開通報として配信せず、Bridge 証跡には保存できます。
+既知の主要部分のみを解読した `complete: false` の通報は配信できるため、必ず `validity` を確認してください。
+`is_real_disaster` は警報の継続中を意味せず、暗号学的な真正性の証明でもありません。
 
-## 时间与标识
+## 時刻と識別子
 
-DCR 月/日/时/分是 UTC，报文不携带年份。解码使用 PC 接收时间作为年份上下文；
-HGRAW 回放使用文件中的原始 PC 时间。ISO 8601 输出 `+00:00`，JST 显示时加 9 小时，
-不要再把广播原码当 JST 减 9 小时。所有 DCR 派生日期均标明年份是推算值。
+DCR の月・日・時・分は UTC で、年を含みません。年は PC の受信日時から推定し、
+HGRAW 再生では元の PC 時刻を使います。派生日時には年が推定であることを明示します。
+ISO 8601 は `+00:00`、JST 表示は UTC+9 です。放送の原値を JST と解釈して再度 9 時間引かないでください。
+DCX A6/A7 の週・週内分は原値を残し、公開層では絶対 `onset` / `expires` を推定しません。
+受信時刻から発表時刻を捏造したり、TTL 切れを `clear` に置き換えたりしません。
 
-DCX A6/A7 的当前/下一周及分钟原码保留。公开层目前保守地不填绝对 onset/expires，
-不以接收时钟制造发布日期或凭 TTL 生成 clear。缓存过期只是本机资源管理。
-
-`id` 不是灾害事件 ID：年份缺失/相对周循环意味着跨年相同内容可能具有相同语义 ID。
-`event_key` 作为 `correlation_hint` 暴露，当前 confidence=limited，不用于自动合并。
-同一消息的卫星复制只保留一次；不同更正、取消、解除各有内容 ID。历史保存这些动作，
-而不会宣称已证明它们属于某个全球唯一事件。`states` 视图也因此可能包含同一灾害的
-多条消息，适用于缺乏可靠关联证据的保守展示。
+`id` は災害イベント ID ではありません。年の欠落や相対週の循環により、別年の同内容が同じ ID になる場合があります。
+`event_key` は `correlation_hint` として公開し、現在の信頼度は `limited` です。強制的な災害統合には使いません。
+同一内容の衛星間反復を除外し、訂正・取消・解除はそれぞれの内容 ID で履歴に残します。
+`states` にも同一災害の複数通報が残り得ます。関連性を証明できない場合の保守的な表示です。
 
 ## WebSocket
 
-`WS /api/v1/ws`；唯一查询参数 `status=actual|test|unknown|all`，默认 actual。
-事件信封：
+`ws://127.0.0.1:8000/api/v1/ws` に接続します。クエリは `status=actual|test|unknown|all` のみで、既定は `actual` です。
+以下は伝送形式の説明用の例です。`data` は省略しています。
 
 ```json
-{"type":"alert","process_id":"进程UUID","sequence":18,"data":{}}
+{"type":"alert","process_id":"00000000-0000-4000-8000-000000000000","sequence":18,"data":{}}
 ```
 
-这是格式示意。三个传输类型：
+| `type` | `data` |
+|---|---|
+| `snapshot` | `alerts`（最新状態、最大 100 件・1 MiB）、`truncated`、同時点の `status` |
+| `alert` | 新しく確定した PublicAlert。災害種別は `data.category` |
+| `status` | 接続・有効 L1S の状態やエラー数の変化に伴う健全性情報 |
 
-- `snapshot`：`data.alerts` 为最近可查询状态，最多 100 条/1MiB，
-  `data.truncated` 表示截断，`data.status` 是同一时点的健康状态。
-- `alert`：data 是新提交的 PublicAlert，含明确的 action。
-- `status`：接收连接、有效 L1S 状态或错误计数改变时的健康对象。
+購読登録とスナップショットは同じロック内で行い、最初に snapshot、その後に変更を送ります。
+接続上限は 64、各送信キューは 32 件です。全購読でエンコード済み文字列を共有し、受信スレッドはネットワークを待ちません。
+キュー超過は 1013、異常は 1011、サーバー終了は 1001、クライアントによる業務 TEXT/BINARY 送信は 1008 で閉じます。
+送信が 5 秒を超えると接続を中止し、close の drain と応答待ちの合計は最大 2 秒です。
+aiohttp が ping/pong と 30 秒の heartbeat を処理します。アプリケーション用の心拍 JSON は不要です。
 
-客户端注册和快照在同一锁内完成，先发送 snapshot，之后发送其后的提交，避免注册
-窗口丢消息。所有订阅共享已编码字符串；单客户端队列 32 条，全局最多 64 客户端。
-接收线程只提交内存并发出合并唤醒，不等待网络。慢客户端队列满会清空该队列并以
-1013 关闭；单次发送超过 5 秒中止连接；单个客户端失败不影响其他订阅或接收。
-异常客户端以1011关闭且不泄露异常正文；关闭drain和握手合计等待最多2秒。
-服务器关闭使用1001。只允许服务端业务数据，客户端发业务 TEXT/BINARY 会以 1008 关闭。
-协议 ping/pong 由 aiohttp 处理，heartbeat 30s；静默时不反复发送 alert JSON。
+再接続はバックオフを設け、新 snapshot でローカル表示を置き換えてください。
+`truncated` の場合は WS 更新を処理しながら `/alerts?view=states` をページングし、`sequence` を確認します。
+`process_id` の変更は再起動を示します。`sequence` は status を含むプロセス内の確定順序で、業務通知には欠番が生じます。
+災害 ID や再起動をまたぐ再送カーソルには使えません。完全なイベントログや旧 sequence からの再送は提供しません。
+復元範囲はキャッシュ容量・TTL・再起動に依存します。完全な伝送証跡が必要な場合は HGRAW を保存してください。
 
-恢复：退避重连，以新 snapshot 替换本地视图，检查 process_id；若 truncated，可用
-`/alerts?view=states` 分页补取并检查 sequence，期间继续处理 WS 消息。不提供完整事件
-日志或基于旧 sequence 的重传。需要完整证据时使用 HGRAW；恢复范围受缓存数量、TTL、
-进程重启影响。sequence 是进程提交序号，包含 status，因此业务序号可以有间隔。
+## 健全性と資源上限
 
-## 健康与运行边界
+`receiver` は starting/waiting_hello/connected/disconnected/stopped/failed/replay/replay_complete、
+`link` は接続状態、`signal` は receiving/waiting_l1s/no_l1s/unknown/historical を表します。
+15 秒間 Bridge フレームがないと `stalled`、Bridge 通信中に 30 秒間有効な L1S がないと `no_l1s` です。
+SLAS/Null も有効受信時刻を更新するため、災害通報が来ないだけでは異常になりません。
+`no_l1s` は衛星が全く見えないことの証明ではありません。
 
-`receiver` 表示 starting/waiting_hello/connected/disconnected/stopped/failed/
-replay/replay_complete。`link` 是接收连接状态，`signal` 区分 receiving、waiting_l1s、
-no_l1s、unknown、historical。30s 未接收有效 L1S 不能证明天线完全无卫星。
-`data_mode=live` 仅表示连接有近期有效 L1S，不表示某条缓存灾害消息是刚发布的。
-消息时间请读 times，历史查询即使链路正常也可能返回旧通报。
+切断・再生・受信停止時はキャッシュを残して `data_mode=historical` とします。
+`live` は最近有効な L1S を受信したことを示すだけで、キャッシュ内の個々の通報が新しいとは限りません。
+通報時刻は `times` で確認してください。エラー数はプロセス内の累積値です。
+`decode_errors`、`verification_errors`、`bridge_errors`、`sequence_gaps`、`upstream_errors`、
+`upstream_drops`、`upstream_l1s_drops`、`archive_errors` を区別し、`last_decode_error` は種類のみを公開します。
+抜粋した HGRAW には選択に伴う sequence の飛びがあり、元の現場での欠落を意味しません。
 
-15s 无 Bridge 帧标为 stalled；30s 无有效 L1S 且 Bridge 仍有帧标为 no_l1s。
-单纯没有灾害新报不影响正常接收状态，SLAS/Null 仍更新有效接收时间。
-断开时保留缓存但标为 historical。`decode_errors`、`verification_errors`、
-`bridge_errors`、`sequence_gaps`、`upstream_errors`、`upstream_drops`、`upstream_l1s_drops`、`archive_errors`
-是进程累计观测；last_decode_error 只提供错误类型代码，不泄露异常正文或路径。
-节选 HGRAW fixture 本身有序号跳跃，不应据此推断完整现场链路丢帧。
+履歴は既定 512 件・24 時間、意味的重複排除は 4096 件・7 日です。履歴 TTL は公開確定時から計算し、
+反復放送で元の発表時刻や保持期限を延長しません。TTL はホストの monotonic clock を使い、MCU 再起動や壁時計の巻き戻りに依存しません。
+履歴の失効と受信の健全性は別々に判定します。
 
-历史默认 512 条/24h，去重默认 4096 条/7d，均在内存中有界。历史 TTL 从发布提交计，
-重复广播不刷新原通报的发布时间或缓存保留时间；超出窗口可能没有可查询历史，但
-接收健康仍独立判断。时钟 TTL 使用主机 monotonic，不受 MCU 重启和墙钟回拨影响。
+同一オリジンのブラウザーは既定で使用できます。クロスオリジンは `--api-origin` で明示し、`*` は指定できません。
+Origin のない通常クライアントも公開 API を読めます。既定は全体で 100 リクエスト/秒、burst 200 です。
+IP ごとの無制限な管理表は持たず、TLS・アドレス別制限・header timeout はリバースプロキシで設定します。
+アプリケーション自体は TLS、ログイン、管理 API、原証跡ダウンロードを実装しません。
 
-默认同源浏览器可用；跨域需要 `--api-origin` 显式允许，不支持 `*`。无 Origin 的普通
-客户端可读公开接口。默认全局 100 请求/秒、200 burst，无 IP 无界统计表。
-反向代理应另设每地址连接/请求限制、TLS 和 header timeout；网络完全不可信时不要
-直接暴露应用端口。应用不实现 TLS、登录、管理接口或原始证据下载。
+## 実受信の例と内部診断形式
+
+[Marine](public-alert-real-marine.json) と [DCX](public-alert-real-dcx.json) は、同梱 HGRAW を現在の実装で
+直接デコードした実受信例です。`input=replay` は今回の読み取り方法で、`times.received` は元の PC 時刻です。
+出所・再生成手順は[テスト資料](../test/fixtures/README.md#公開-json-例)を参照してください。
+
+内部の不変モデル `hoshiguard.alert.v1` は Human と診断 NDJSON で共有します。
+`frame_fingerprint` は伝送証跡、semantic fingerprint v2 は内容を識別し、後者は受信時刻・Bridge/PPS・衛星・PAB・
+UBX/L1S raw・チェックサム・表示ラベルを除外します。status/action/category、仕様上の時刻原値、provider/library、
+対象地域、順序付き payload、ページ識別、意味のある未知・予約コードは残します。
+診断 NDJSON の `record_type` は frame_observation/semantic_observation/event_lifecycle/service_summary です。
+`stream_mode`、`producer_version`、`semantic_fingerprint_version`、`bridge_protocol_version`、`session_id` を含み、
+通常は `hoshiguard.session.v1` の session_start/end も出力します。利用側は未知の record type を無視してください。
+旧来の通報のみの行形式が必要な場合は `hoshiguard diagnose --no-session-records` を使います。
+詳細 raw・内部パスを含み得るため、診断出力をそのまま公開 API として配信しないでください。

@@ -1,4 +1,4 @@
-"""One synchronous receiver/decoder; no network work on the serial thread."""
+"""単一の同期受信・デコード処理。シリアルスレッドではネットワーク処理を行わない。"""
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -88,7 +88,7 @@ class ReceiverPipeline:
                                dcr_reassembler=self.reassembler,
                                receipt_time=datetime.fromtimestamp(received_ns / 1e9, timezone.utc))
         except (L1sError, DcrDecodeError, DcxDecodeError) as exc:
-            # Details are local logs only. Public health contains a stable code.
+            # 詳細はローカルログのみ。公開健全性には安定したコードを使う。
             _LOG.warning("semantic_decode_error sequence=%s type=%s: %s",
                          frame.sequence, type(exc).__name__, str(exc).replace("\n", " "))
             self.store.error("decode_errors", type(exc).__name__)
@@ -132,7 +132,7 @@ def receive(config: ReceiverConfig, store: AlertStore, stop: threading.Event,
                     if not disk.check().allow_archive:
                         store.error("archive_errors")
                         raise OSError("archive disk reserve reached")
-                    # Save the verified Bridge record before semantic decoding.
+                    # 意味デコード前に検証済み Bridge レコードを保存する。
                     try:
                         archive.write(frame.wire, received_ns)
                     except OSError:

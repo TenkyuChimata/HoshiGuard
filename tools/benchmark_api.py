@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Reproducible decode/state and synthetic bounded-memory comparison.
+"""デコード・状態管理と、合成したメモリ上限の再現可能な比較。
 
---baseline selects the pre-0.3 diagnostic decode/state path; --package-root
-allows loading an exported old checkout in a fresh interpreter. No hardware,
-archive writes, fsync or real-time duration is simulated as actual reception.
+--baseline は 0.3 より前の診断経路を選び、--package-root は別 checkout を新しい interpreter で読み込む。
+ハードウェア、アーカイブ書き込み、fsync、実時間の受信を実測したものとは扱わない。
 """
 import argparse
 import asyncio
@@ -87,7 +86,7 @@ def main():
         events = EventProcessor(capacity=4096, maximum_frame_fingerprints=0, track_evidence=False)
         store = AlertStore(replay=True)
     for i in range(args.unique):
-        # Synthetic semantic diversity only; these are not received broadcasts.
+        # 意味内容の多様性を合成した値であり、実受信放送ではない。
         fields = dict(base.payload.fields)
         fields['synthetic_benchmark_discriminator'] = i
         fingerprint = hashlib.sha256(str(i).encode()).hexdigest()

@@ -1,4 +1,4 @@
-"""Guidance lookup is decoded by the CAMF library; raw A11 is always retained."""
+"""指示文は CAMF ライブラリで解読し、A11 原値を常に保持する。"""
 
 
 def guidance_code(fields: dict, raw_code: int) -> dict:

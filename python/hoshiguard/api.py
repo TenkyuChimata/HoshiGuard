@@ -1,4 +1,4 @@
-"""Read-only aiohttp API. All reads use the same in-memory committed state."""
+"""読み取り専用 aiohttp API。全要求が同じメモリ内の確定状態を参照する。"""
 from __future__ import annotations
 
 import asyncio
@@ -28,15 +28,15 @@ def create_app(store: AlertStore, *, allowed_origins: tuple[str, ...] = (),
     tokens, updated = requests_per_second * 2, time.monotonic()
 
     async def close_ws(ws, *, code=WSCloseCode.GOING_AWAY, message=b""):
-        # Bound both socket drain and close acknowledgement. aiohttp closes
-        # the transport when close() is cancelled by wait_for on timeout.
+        # socket の drain と close 応答待ちの両方を制限する。
+        # wait_for がタイムアウトで close() を取り消すと aiohttp が transport を閉じる。
         with suppress(asyncio.TimeoutError, ConnectionError, OSError):
             await asyncio.wait_for(ws.close(code=code, message=message), 2)
 
     def origin_allowed(request: web.Request) -> bool:
         origin = request.headers.get("Origin")
         if not origin:
-            return True  # non-browser clients
+            return True  # ブラウザー以外のクライアント
         if origin in allowed_origins:
             return True
         try:
@@ -180,9 +180,7 @@ def create_app(store: AlertStore, *, allowed_origins: tuple[str, ...] = (),
             tasks = tuple(task for task in (sender, reader) if task is not None)
             for task in tasks:
                 task.cancel()
-            # The failure has already been logged/handled above. Retrieve all
-            # task results during cleanup without attempting another HTTP
-            # response after the connection has upgraded to WebSocket.
+            # 失敗は上で記録・処理済み。後処理では全 task の結果を回収し、WebSocket への切り替え後に HTTP 応答を再送しない。
             if tasks:
                 await asyncio.gather(*tasks, return_exceptions=True)
             if ws.prepared:

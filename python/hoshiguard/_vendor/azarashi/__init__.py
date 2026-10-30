@@ -1,2 +1,2 @@
-"""azarashi 0.16.3 (MIT), vendored for deterministic offline decoding."""
+"""azarashi 0.16.3（MIT）。決定的なオフラインデコード用に同梱。"""
 

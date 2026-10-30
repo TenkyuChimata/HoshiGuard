@@ -45,16 +45,13 @@ bool isValidL1sPreamble(uint8_t pab) {
 }
 
 bool isSupportedQzssL1sWordCount(uint8_t numWords) {
-  // Nine words are proven by MAX-M10S SPG 5.10 field captures. Keep the
-  // historic eight-word path for the existing Switch Science/sample vectors;
-  // do not accept arbitrary >=8 word counts.
+  // MAX-M10S SPG 5.10 の現場取得で 9 word を確認済み。既存の Switch Science/試験ベクトル用に 8 word も維持するが、任意の 8 以上の個数は受理しない。
   return numWords == QZSS_L1S_M10_WORDS ||
          numWords == QZSS_L1S_LEGACY_WORDS;
 }
 
 uint32_t qzssL1sCrc24(const uint8_t raw[QZSS_L1S_RAW_BYTES]) {
-  // IS-QZSS-L1S-009 section 4.1.1.3. Polynomial without x^24:
-  // x^23+x^18+x^17+x^14+x^11+x^10+x^7+x^6+x^5+x^4+x^3+x+1.
+  // IS-QZSS-L1S-009 4.1.1.3。x^24 を除く多項式: x^23+x^18+x^17+x^14+x^11+x^10+x^7+x^6+x^5+x^4+x^3+x+1。
   static const uint32_t polynomial = 0x864CFBU;
   uint32_t crc = 0;
   for (size_t i = 0; i < QZSS_L1S_CRC_DATA_BITS; ++i) {
@@ -94,8 +91,7 @@ bool extractQzssL1s(const uint8_t *payload, uint16_t payloadLength,
     return false;
   }
 
-  // UBX serializes each U4 dwrd little-endian. The numeric word's bit 31 is
-  // the earliest transmitted bit, so reverse bytes within each word only.
+  // UBX は U4 dwrd をリトルエンディアンで格納し、数値の bit 31 が先に送信される。各 word 内の byte 順だけを反転する。
   for (size_t word = 0; word < QZSS_L1S_CONTENT_WORDS; ++word) {
     const size_t source = 8U + word * 4U;
     const size_t dest = word * 4U;
@@ -146,7 +142,7 @@ bool L1sDeduplicator::checkAndRemember(
 
   Entry &entry = entries_[next_];
   memcpy(entry.raw, raw, QZSS_L1S_RAW_BYTES);
-  entry.raw[31] &= 0xC0U;  // Six SFRBX padding bits are not message content.
+  entry.raw[31] &= 0xC0U;  // SFRBX の padding 6 bit は通報内容に含めない。
   entry.hash = hash;
   entry.receivedMicros = receivedMicros;
   entry.used = true;

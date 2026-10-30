@@ -55,8 +55,8 @@ struct DecodedFrame {
   uint32_t calculatedCrc;
 };
 
-// CRC-32/ISO-HDLC: poly 0x04C11DB7 (reflected implementation 0xEDB88320),
-// init 0xFFFFFFFF, refin/refout true, xorout 0xFFFFFFFF. The wire value is LE.
+// CRC-32/ISO-HDLC: poly 0x04C11DB7（反転実装 0xEDB88320）、init 0xFFFFFFFF、refin/refout true、xorout 0xFFFFFFFF。
+// wire 値はリトルエンディアン。
 uint32_t crc32IsoHdlc(const uint8_t *data, size_t length);
 
 bool cobsEncode(const uint8_t *input, size_t inputLength, uint8_t *output,
@@ -90,8 +90,7 @@ enum class Priority : uint8_t {
 
 enum class EnqueueResult : uint8_t { Queued, ReplacedLower, Dropped };
 
-// Queue stores complete COBS records including the trailing zero delimiter.
-// The active record cannot be evicted, so partial UART writes remain atomic.
+// 末尾のゼロ区切りを含む完全な COBS レコードを保存する。送信中のレコードは置換せず、UART の部分書き込みでも一体性を保つ。
 template <size_t Depth, size_t RecordSize, size_t L1sReservedSlots>
 class RecordQueue {
  public:

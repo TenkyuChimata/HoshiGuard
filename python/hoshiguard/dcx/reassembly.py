@@ -1,4 +1,4 @@
-"""DCX-004 uses one MT44 frame; no cross-frame reassembly is specified."""
+"""DCX-004 は単一 MT44 を使い、フレームをまたぐ再構成を規定しない。"""
 
 
 def requires_reassembly() -> bool:

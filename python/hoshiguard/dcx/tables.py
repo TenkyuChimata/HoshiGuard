@@ -1,4 +1,4 @@
-"""Versioned CAMF/DCX lookup adapters."""
+"""版付き CAMF/DCX テーブルの参照 adapter。"""
 
 from .._vendor.azarashi.qzss_dcr_lib.definition.qzss_dcx_camf_a4_hazard_category_and_type import (
     qzss_dcx_camf_a4_hazard_category,

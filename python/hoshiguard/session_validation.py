@@ -1,4 +1,4 @@
-"""Streaming validation of a real HoshiGuard Bridge archive."""
+"""実受信 HoshiGuard Bridge アーカイブのストリーミング検証。"""
 
 from __future__ import annotations
 
@@ -266,29 +266,29 @@ def markdown_report(report: dict[str, Any]) -> str:
     archive = report["archive_validation"]
     closure = report["status"]
     return "\n".join((
-        "# HoshiGuard v0.2.7 validation of the v0.2.5 real Bridge session",
+        "# HoshiGuard 実機 Bridge セッションの検証",
         "",
-        f"- Evidence: `{report['evidence_source']}`",
-        f"- Source SHA-256: `{report['source']['sha256']}`",
-        f"- Duration: {report['duration_seconds']:.3f} s",
-        f"- HGRAW records: {report['hgraw_records']}",
-        f"- Frame types: `{json.dumps(report['frame_type_distribution'], sort_keys=True)}`",
-        f"- Sequence: {seq['first']}..{seq['last']}; gaps={seq['gaps']}; "
+        f"- 証跡: `{report['evidence_source']}`",
+        f"- 元データ SHA-256: `{report['source']['sha256']}`",
+        f"- 期間: {report['duration_seconds']:.3f} s",
+        f"- HGRAW レコード数: {report['hgraw_records']}",
+        f"- フレーム種別: `{json.dumps(report['frame_type_distribution'], sort_keys=True)}`",
+        f"- sequence: {seq['first']}..{seq['last']}; gaps={seq['gaps']}; "
         f"duplicates={seq['duplicates']}; out_of_order={seq['out_of_order']}",
-        f"- Archive CRC / COBS / Bridge CRC errors: "
+        f"- Archive CRC / COBS / Bridge CRC エラー: "
         f"{archive['archive_crc_errors']} / {archive['cobs_errors']} / "
         f"{archive['bridge_crc_errors']}",
         f"- L1S: {l1s['frames']}; UBX errors={l1s['ubx_checksum_errors']}; "
         f"L1S CRC errors={l1s['l1s_crc_errors']}; mismatches={l1s['verification_mismatches']}",
-        f"- STATUS closure: {closure.get('closed', False)}",
-        f"- Queue high watermark: {report['queue_high_watermark']}",
-        f"- PPS / time: {report['pps_final_state']} / {report['time_quality_final']}",
-        f"- Peak wire utilization at 115200 8N1: "
+        f"- STATUS カウンター整合: {closure.get('closed', False)}",
+        f"- キュー最大使用数: {report['queue_high_watermark']}",
+        f"- PPS / 時刻品質: {report['pps_final_state']} / {report['time_quality_final']}",
+        f"- 115200 8N1 での最大回線使用率: "
         f"{report['wire_throughput']['peak_115200_8n1_utilization']:.2%}",
-        f"- Zero L1S drop verdict: **{report['zero_l1s_drop_proven']}**",
-        f"- Final verdict: **{report['final_verdict']}**",
+        f"- L1S 欠落なしの判定: **{report['zero_l1s_drop_proven']}**",
+        f"- 最終判定: **{report['final_verdict']}**",
         "",
-        "Counters are deltas between the first and last STATUS in the archive; "
-        "pre-capture cumulative counts are not compared with in-window frames.",
+        "カウンターはアーカイブ内の最初と最後の STATUS の差分を用い、"
+        "取得開始前の累積値を区間内のフレーム数と比較しません。",
         "",
     ))

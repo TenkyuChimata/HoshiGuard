@@ -39,7 +39,7 @@
 #define GNSS_TX_PIN PA2
 #define PPS_PIN PA8
 
-// Output controls. JSON_OUTPUT and human-readable output are mutually exclusive.
+// 出力制御。JSON_OUTPUT と人間向けのテキスト出力は排他的に使う。
 #ifndef JSON_OUTPUT
 #define JSON_OUTPUT 0
 #endif
@@ -77,8 +77,7 @@
 #endif
 #define GNSS_RX_PROBE_WINDOW_MS 450UL
 
-// MAX-M10S Integration Manual section 4.2.2 recommends allowing typically
-// 100 ms after changing the UART baud before input at the new rate.
+// MAX-M10S Integration Manual 4.2.2 は、UART baud 変更後、新 baud での入力まで通常 100 ms 待つことを推奨する。
 #define GNSS_BAUD_SWITCH_QUIET_BEFORE_MS 100UL
 #define GNSS_BAUD_SWITCH_QUIET_AFTER_MS 100UL
 

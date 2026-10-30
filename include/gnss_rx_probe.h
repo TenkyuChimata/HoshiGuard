@@ -88,8 +88,7 @@ class GnssRxProbe {
   GnssRxEvidence evidence_;
 };
 
-// These formatters never emit raw control characters and always terminate the
-// output when capacity is non-zero. The return value excludes the terminator.
+// 生の制御文字は出力しない。容量が 0 以外なら必ず終端し、戻り値に終端文字を含めない。
 size_t formatGnssRxAscii(const uint8_t *data, size_t length,
                          char *output, size_t capacity);
 size_t formatGnssRxHex(const uint8_t *data, size_t length,

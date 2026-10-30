@@ -1,4 +1,4 @@
-# Place these directives in nginx's http context. Terminate TLS at the proxy.
+# nginx の http コンテキストに配置する。公開時はプロキシで TLS を設定する。
 map $http_upgrade $hoshiguard_connection {
     default upgrade;
     '' close;

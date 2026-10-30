@@ -1,7 +1,7 @@
-"""API tests: real fixture replay, plus explicitly synthetic lifecycle variants.
+"""API テスト: 実 fixture 再生と、合成であることを明示したライフサイクル変種。
 
-No synthetic mutation here is evidence of a received satellite broadcast.
-Network cases bind loopback and require a runner that permits local sockets.
+合成した変更は衛星放送の実受信証拠ではない。
+ネットワーク検証は loopback に bind し、ローカル socket を許可する実行環境が必要。
 """
 import asyncio
 from dataclasses import replace
@@ -32,7 +32,7 @@ from hoshiguard.runtime import ReceiverConfig, ReceiverPipeline, receive
 ROOT = Path(__file__).resolve().parents[2]
 FIXTURE = ROOT / 'test/fixtures/bridge_real_session/selected_records.hgraw'
 NS = 1784097827645520000
-SCHEMA = json.loads((ROOT / 'docs/schema/public-alert.v1.schema.json').read_text())
+SCHEMA = json.loads((ROOT / 'docs/public-alert.v1.schema.json').read_text())
 
 
 def real_alert(name=None):
@@ -54,7 +54,7 @@ def real_alert(name=None):
 
 def synthetic(base=None, *, action='issue', status='actual', number=0):
     base = base or real_alert()
-    # Change normative payload fields explicitly, not just a cached hash.
+    # キャッシュ済み hash だけでなく、仕様上の payload 値を明示的に変更する。
     fields = dict(base.payload.fields)
     fields['synthetic_test_discriminator'] = number
     alert = replace(base, action=action, status=status,
@@ -132,7 +132,7 @@ class PublicStateTests(unittest.TestCase):
         store.set_receiver('connected', connected=True)
         store.frame_received(NS, l1s=True)
         now[0] = 120
-        store.frame_received(NS)  # heartbeat is alive, no L1S since start
+        store.frame_received(NS)  # heartbeat は継続しているが、起動後の L1S はない
         self.assertEqual(store.status()['signal'], 'no_l1s')
         self.assertEqual(store.status()['decode_errors'], 0)
         store.frame_received(NS, l1s=True)
@@ -347,7 +347,7 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
     async def test_slow_client_overflow_does_not_block_http(self):
         ws = await self.client.ws_connect('/api/v1/ws')
         await ws.receive_json()
-        for i in range(40):  # no yields: deterministically fill the send queue
+        for i in range(40):  # yield せず、送信キューを決定的に満たす
             self.post(synthetic(self.base, number=i))
         self.assertEqual((await ws.receive()).type, WSMsgType.CLOSE)
         self.assertEqual(ws.close_code, 1013)
@@ -358,7 +358,7 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         await reconnected.close()
 
     async def test_real_hgraw_replay_to_http_and_ws_snapshot(self):
-        # Same real binary fixture, not a reconstructed synthetic broadcast.
+        # 同じ実受信バイナリを使い、合成放送を再構築しない。
         await asyncio.to_thread(receive, ReceiverConfig(replay=str(FIXTURE)), self.store, threading.Event())
         resp = await self.client.get('/api/v1/alerts/latest')
         value = await resp.json()

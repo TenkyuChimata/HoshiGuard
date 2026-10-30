@@ -1,4 +1,4 @@
-"""Bounded DCR-016 multi-page reassembly for Nankai Trough text."""
+"""南海トラフ本文の、上限付き DCR-016 複数ページ再構成。"""
 
 from __future__ import annotations
 

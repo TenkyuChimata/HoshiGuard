@@ -64,7 +64,7 @@ PpsActivity evaluatePpsActivity(uint32_t sequence, uint32_t lastEdgeMicros,
                                 uint32_t nowMicros, uint32_t lostCount,
                                 uint32_t anomalyCount) {
   if (sequence == 0U) return PpsActivity::NoActivity;
-  const uint32_t age = nowMicros - lastEdgeMicros;  // wrap-safe
+  const uint32_t age = nowMicros - lastEdgeMicros;  // 周回しても安全
   if (age > 1800000UL) return PpsActivity::TransientOrMissing;
   if (lostCount != 0U || anomalyCount != 0U) return PpsActivity::Unstable;
   if (sequence < 3U) return PpsActivity::ObservedOnce;

@@ -1,8 +1,7 @@
-"""Versioned transport-independent semantic identity.
+"""版付きで伝送に依存しない意味識別。
 
-The canonical representation is deliberately built from the decoded model,
-not from UBX/L1S/Bridge evidence.  Lists are kept ordered unless the model
-explicitly says that they are sets (currently ``areas`` and unknown fields).
+正規化した表現はデコード済みモデルから構築し、UBX/L1S/Bridge 証跡から作らない。
+集合と明示した値（現在は ``areas`` と未知フィールド）以外はリストの順序を保持する。
 """
 
 from __future__ import annotations
@@ -20,9 +19,8 @@ from ..models import UnifiedAlert, json_safe
 
 SEMANTIC_FINGERPRINT_VERSION = 2
 
-# azarashi exposes useful semantic codes and presentation/transport helpers in
-# one mapping.  These fields are not QZSS business semantics and were the root
-# cause of v0.2.5 fingerprints changing with PAB and replay time.
+# azarashi は意味コードと表示・伝送補助値を同じ mapping に含める。
+# 補助値は QZSS の業務的意味ではなく、PAB や再生時刻による fingerprint 変化の原因となるため除外する。
 _DCR_NON_SEMANTIC_FIELDS = frozenset({
     "message", "message_header", "message_type", "nmea", "preamble",
     "raw", "satellite_id", "satellite_prn", "sentence", "timestamp",
@@ -68,16 +66,15 @@ def _payload(value: Any) -> Any:
             "fields": _normalise(fields),
         }
     if isinstance(value, DcxPayload):
-        # decoded_fields contains vendor presentation helpers (NMEA sentence,
-        # preamble and wall-clock decode timestamp). CAMF A1..A18 plus the
-        # versioned ExtendedFields are the complete semantic/raw-code source.
+        # decoded_fields は NMEA 文、preamble、デコード時の壁時計等の表示補助値を含む。
+        # CAMF A1..A18 と版付き ExtendedFields を意味・原コードの完全な情報源とする。
         return {"camf": _normalise(value.camf),
                 "extended": _normalise(value.extended)}
     return _normalise(value)
 
 
 def _dcr_value(value: Any) -> Any:
-    """Remove inferred Gregorian year while retaining normative month/day/time."""
+    """仕様上の月・日・時刻を保持し、推定した西暦年を除く。"""
     if isinstance(value, str) and re.match(r"^\d{4}-\d\d-\d\d[T ]", value):
         return "--" + value[5:]
     if isinstance(value, Mapping):
@@ -88,7 +85,7 @@ def _dcr_value(value: Any) -> Any:
 
 
 def canonical_semantic(alert: UnifiedAlert) -> dict[str, Any]:
-    """Return canonical business meaning, excluding all receipt evidence."""
+    """受信証跡を除外した正規の業務的意味を返す。"""
     areas = sorted(({
         "code": _normalise(area.code),
         "kind": area.kind,
@@ -108,9 +105,8 @@ def canonical_semantic(alert: UnifiedAlert) -> dict[str, Any]:
     return {
         "semantic_fingerprint_version": SEMANTIC_FINGERPRINT_VERSION,
         "service": alert.service.value,
-        # 017 retains the 016 wire layout. Pin this existing v2 identity
-        # namespace so a specification-label update cannot republish every
-        # unchanged observation. Newly defined semantic fields still hash.
+        # 017 は 016 の wire layout を維持する。既存 v2 identity の名前空間を固定し、仕様ラベル変更だけで全通報が再公開されることを防ぐ。
+        # 新規に定義された意味フィールドは hash に含める。
         "spec": "IS-QZSS-DCR-016" if alert.service.value == "DCR" and alert.spec == "IS-QZSS-DCR-017" else alert.spec,
         "status": alert.status,
         "action": alert.action,
@@ -122,8 +118,7 @@ def canonical_semantic(alert: UnifiedAlert) -> dict[str, Any]:
             "reserved": alert.category.reserved,
         },
         "severity": _normalise(alert.severity),
-        # DCR's year is receiver-context inference. Its normative raw
-        # month/day/hour/minute and all other time codes remain in payload.
+        # DCR の年は受信文脈からの推定。仕様上の月・日・時・分とその他の時刻原コードは payload に保持する。
         "times": None if alert.service.value == "DCR" else _normalise(alert.times),
         "areas": areas,
         "payload": payload,

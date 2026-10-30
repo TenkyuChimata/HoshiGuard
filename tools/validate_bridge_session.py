@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Validate a real HoshiGuard .hgraw session without loading it wholesale."""
+"""実受信 HGRAW セッションを全体読み込みせず検証する。"""
 
 from __future__ import annotations
 

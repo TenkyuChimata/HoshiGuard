@@ -50,18 +50,17 @@ static const uint32_t CFG_TP_POL_TP1 = 0x1005000BUL;
 
 bool configEvidenceVerified(const ConfigEvidence &evidence);
 
-// UBX-CFG-VALGET poll: version 0, RAM layer, position 0, one U4 key.
+// UBX-CFG-VALGET poll: version 0、RAM layer、position 0、U4 key 1 個。
 size_t buildCfgValgetPayload(uint32_t key, uint8_t *output,
                              size_t capacity);
 
-// UBX-CFG-VALSET version 0, transactionless, one key/value pair.
+// UBX-CFG-VALSET version 0。transaction なし、key/value 1 組。
 size_t buildCfgValsetPayload(uint32_t key, uint32_t value, uint8_t width,
                              uint8_t layers, uint8_t *output,
                              size_t capacity);
 
-// Parses one-key UBX-CFG-VALGET response (response version 1). The response
-// cfgData begins at byte 4 and contains a little-endian U4 key immediately
-// followed by its variable-width little-endian value.
+// 単一 key の UBX-CFG-VALGET 応答（version 1）を解析する。
+// cfgData は byte 4 から始まり、リトルエンディアンの U4 key の直後に可変幅のリトルエンディアン値が続く。
 bool parseCfgValgetResponse(const uint8_t *payload, uint16_t length,
                             uint32_t expectedKey, uint8_t width,
                             uint32_t &value);

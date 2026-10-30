@@ -1,4 +1,4 @@
-"""Real loopback process startup, signal shutdown, abrupt exit and replay recovery."""
+"""実 loopback でのプロセス起動、signal 終了、異常終了と再生復旧の検証。"""
 import json
 from pathlib import Path
 import socket

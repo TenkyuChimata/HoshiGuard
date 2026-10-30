@@ -12,7 +12,7 @@ static const uint8_t QZSS_L1S_LEGACY_WORDS = 8U;
 
 class BitReader {
  public:
-  // QZSS bit numbering: bit 0 is the MSB of byte 0.
+  // QZSS のビット番号は、byte 0 の MSB を bit 0 とする。
   BitReader(const uint8_t *data, size_t bitLength)
       : data_(data), bitLength_(bitLength) {}
   bool read(size_t bitOffset, uint8_t bitCount, uint32_t &value) const;
@@ -45,9 +45,8 @@ struct QzssL1sFrame {
   uint8_t pab;
   uint8_t messageType;
   uint8_t numWords;
-  // MAX-M10 SPG 5.10 reports a ninth dwrd. The first eight dwrd contain the
-  // 250-bit L1S message plus six spare bits; preserve the extra UBX bytes for
-  // diagnostics without treating them as L1S fields.
+  // MAX-M10 SPG 5.10 は 9 番目の dwrd を出力する。
+  // 先頭 8 dwrd は L1S 250 bit と予備 6 bit で、追加 UBX byte は L1S フィールドとせず診断用に保持する。
   uint8_t extraWordUbx[4];
   bool hasExtraWord;
   bool validPab;

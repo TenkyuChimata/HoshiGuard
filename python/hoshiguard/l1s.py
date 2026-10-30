@@ -1,4 +1,4 @@
-"""Independent IS-QZSS-L1S-009 transport verification."""
+"""IS-QZSS-L1S-009 に基づく独立した伝送検証。"""
 
 from __future__ import annotations
 
@@ -24,10 +24,9 @@ class L1sError(ValueError):
 
 
 def read_bits(data: bytes, offset: int, width: int, bit_length: int = VALID_BITS) -> int:
-    """Read an unsigned MSB-first field bounded by the declared bit length.
+    """指定 bit 長の範囲内で、MSB-first の符号なしフィールドを読む。
 
-    Python integers are arbitrary precision, so field width is limited only by
-    ``bit_length`` and the supplied storage, not by a machine word size.
+    Python 整数は任意精度であり、幅の制限は ``bit_length`` と入力の長さに従い、マシン word 長には依存しない。
     """
     if not all(isinstance(value, int) for value in
                (offset, width, bit_length)):
@@ -87,8 +86,7 @@ def verify_ubx_l1s(raw_ubx: bytes) -> VerifiedL1s:
         raise L1sError("SFRBX is not QZSS L1S (gnssId=5, sigId=1)")
     if sfrbx.num_words not in SUPPORTED_WORD_COUNTS:
         raise L1sError("unsupported QZSS L1S numWords")
-    # Each U4 is serialized little-endian by UBX, while bit 31 is the first
-    # transmitted L1S bit. Reverse bytes within exactly the first eight words.
+    # UBX の各 U4 はリトルエンディアンで、bit 31 が L1S の最初の送信 bit。先頭 8 word 内の byte 順だけを反転する。
     raw = b"".join(word[::-1] for word in sfrbx.words_ubx[:8])
     received = read_bits(raw, CRC_DATA_BITS, 24)
     extra = sfrbx.words_ubx[8] if sfrbx.num_words == 9 else None

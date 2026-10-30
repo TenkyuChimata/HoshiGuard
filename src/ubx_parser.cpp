@@ -40,8 +40,7 @@ void UbxParser::resyncFrom(uint8_t byte) {
 bool UbxParser::feed(uint8_t byte, UbxPacketView &packet) {
   ++stats_.receivedBytes;
 
-  // Count only recognizable NMEA sentences, rather than labelling arbitrary
-  // binary noise as NMEA. This accounting does not alter UBX resynchronization.
+  // 認識できる NMEA 文のみを数え、任意のバイナリノイズを NMEA としない。この集計は UBX の再同期に影響しない。
   if (!nmeaActive_ && state_ == SYNC1 && byte == '$') nmeaActive_ = true;
   if (nmeaActive_) {
     ++stats_.nmeaBytesSkipped;

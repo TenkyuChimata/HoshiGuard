@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministically select a compact regression fixture from a real HGRAW."""
+"""実 HGRAW から小さな回帰 fixture を決定的に選択する。"""
 
 from __future__ import annotations
 
@@ -181,23 +181,12 @@ def build(source: Path):
             {"name": "metadata_mismatch", "wire_hex": metadata_bad.hex().upper()},
         ],
     }
-    readme = f"""# Real Bridge session regression fixture
 
-Derived deterministically from SHA-256 `{source_hash}`.  The original hour-long
-archive is not copied here. `selected_records.hgraw` retains exact Bridge wire
-frames and PC receive timestamps for HELLO, STATUS, TIME_STATUS, MT43/44/47-50,
-all observed PABs, both observed satellites, and records near both ends.
-
-Evidence source: `real_hardware`. Coordinates and NAV-PVT are not retained.
-`negative_vectors.json` is explicitly synthetic-derived and must never be
-reported as a real receiver failure.
-"""
     artifacts = {
         "manifest.json": json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         "expected_summary.json": json.dumps(expected, indent=2, sort_keys=True) + "\n",
         "selected_records.hgraw": archive_bytes([item[0] for item in selected]),
         "negative_vectors.json": json.dumps(negatives, indent=2, sort_keys=True) + "\n",
-        "README.md": readme,
     }
     return artifacts
 

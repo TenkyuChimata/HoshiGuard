@@ -22,7 +22,7 @@ class QzssDcrDecoderJmaTyphoon(QzssDcrDecoderJmaCommon):
                 self)
         self.reference_time_type_raw = dt
 
-        # the time elapsed from the analysis
+        # 解析からの経過時間
         self.elapsed_time_from_reference_time = self.extract_field(80, 7)
 
         tn = self.extract_field(87, 7)

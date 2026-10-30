@@ -1,4 +1,4 @@
-"""Repository-root shim for ``python3 -m hoshiguard``."""
+"""リポジトリ直下で ``python3 -m hoshiguard`` を使うための互換入口。"""
 
 from pathlib import Path
 

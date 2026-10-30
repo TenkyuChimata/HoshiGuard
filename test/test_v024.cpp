@@ -171,7 +171,7 @@ void test_ten_word_qzss_sig1_is_rejected() {
   uint8_t packet[64];
   TEST_ASSERT_LESS_OR_EQUAL_UINT32(sizeof(packet), source.length);
   memcpy(packet, source.data, source.length);
-  packet[8] = 1U;  // sigId=1 while retaining the real ten-word payload.
+  packet[8] = 1U;  // 実受信の 10 word payload を保持したまま sigId=1 とする。
   checksumPacket(packet, source.length);
   UbxParser parser; UbxFrameDispatcher dispatcher; UbxInjectionResult result = {};
   injectUbxBytes(packet, source.length, parser, dispatcher, result);

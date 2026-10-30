@@ -62,7 +62,7 @@ void PpsIntervalTracker::observe(uint32_t sequence, uint32_t edgeMicros) {
   if (sequence == 0U) return;
   ++stats_.count;
   if (lastSequence_ != 0U) {
-    const uint32_t interval = edgeMicros - lastMicros_;  // wrap-safe
+    const uint32_t interval = edgeMicros - lastMicros_;  // 周回しても安全
     stats_.lastIntervalMicros = interval;
     const uint32_t sequenceGap = sequence - lastSequence_;
     bool bad = false;
@@ -279,15 +279,12 @@ bool PpsUtcAssociator::observeNavPvt(const uint8_t *payload, uint16_t length,
   ++stats_.validUtcCount;
   record.quality = TimeQuality::GnssUtcValid;
 
-  // NAV-PVT reports the navigation epoch, not the physical pulse. At the
-  // configured 1 Hz rate an integer-second iTOW normally arrives after the
-  // corresponding rising edge. Serial latency is not a proof of identity, so
-  // this nearest preceding edge is deliberately only tentative. UBX-TIM-TP or
-  // another receiver timing message is required before using Confirmed.
+  // NAV-PVT は航法 epoch を示し、物理パルスを示さない。1 Hz 設定では整数秒の iTOW は通常対応する立ち上がりエッジより後に届く。
+  // シリアル遅延では対応を証明できないため、直前エッジは暫定扱いとする。Confirmed には UBX-TIM-TP 等の時刻メッセージが必要。
   if (count_ != 0U && record.iTowMs % 1000U == 0U) {
     const size_t index = (next_ + PPS_CAPACITY - 1U) % PPS_CAPACITY;
     PpsEvent &event = events_[index];
-    const uint32_t age = receivedMicros - event.microsValue;  // wrap-safe
+    const uint32_t age = receivedMicros - event.microsValue;  // 周回しても安全
     if (age <= 750000U) {
       event.utcAssigned = true;
       event.utcSecond = utcSecond;

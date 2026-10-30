@@ -23,7 +23,7 @@
   "dcr": {
     "spec": "IS-QZSS-DCR-017",
     "previous_wire_profile": "IS-QZSS-DCR-016",
-    "additions_017": {"verification": ["implemented", "synthetic_verified"], "real_broadcast_verified": false, "audit": "dcr017_audit.md"},
+    "additions_017": {"verification": ["implemented", "synthetic_verified"], "real_broadcast_verified": false, "audit": "protocol.md#l1s-と-mt43dcr"},
     "categories": {
       "1": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
       "2": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined", "real_broadcast_verified"]},
@@ -52,5 +52,5 @@
     "null_message": {"implementation": "complete_non_event", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"], "real_hardware_frames_24h": 34121, "real_hardware_firmware": "0.2.5"},
     "l_alert_ex1": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "real_broadcast_verified"], "real_hardware_frames_24h": 69, "real_hardware_firmware": "0.2.5"}
   },
-  "completion_claim": "Bridge 1.0/path has 24-hour real-hardware evidence from firmware 0.2.5; current 0.2.7 requires a confirming hardware run; only observed semantics are promoted, official July DCR scenarios remain defined rather than received, and EX11 remains raw-only"
+  "completion_claim": "Bridge 1.0 と変更のない経路にはファームウェア 0.2.5 の約 24 時間の実機証跡がある。現在のファームウェア自体には改めて実機確認が必要。観測した意味だけを検証済みとし、2026 年 7 月 DCR シナリオは定義のみで受信確認はない。EX11 は原値のみを保持する。"
 }

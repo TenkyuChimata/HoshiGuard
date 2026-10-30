@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""Replay HoshiGuard UBX_RAW logs with the firmware's L1S rules.
+"""ファームウェアと同じ L1S 規則で UBX_RAW ログを再生する。
 
-Protocol constants mirror include/qzss_l1s.h and src/qzss_l1s.cpp:
-250 valid MSB-first bits, MT at bit 8 for 6 bits, CRC data bits 0..225,
-CRC bits 226..249, polynomial low 24 bits 0x864CFB, init/final xor zero.
+定数は include/qzss_l1s.h と src/qzss_l1s.cpp に対応する。
+有効 250 bit は MSB-first、MT は bit 8 から 6 bit、CRC 対象は bit 0..225、
+CRC は bit 226..249、多項式の下位 24 bit は 0x864CFB、init/final xor は 0。
 """
 
 from __future__ import annotations
@@ -170,7 +170,7 @@ def extract_l1s(record: UbxRecord, seen: dict[bytes, int]) -> Optional[L1sRecord
             header.num_words not in (8, 9)):
         return None
     payload = header.payload
-    # UBX U4 is little-endian; the numeric word's bit 31 is transmitted first.
+    # UBX U4 はリトルエンディアンで、数値の bit 31 が先に送信される。
     raw = b"".join(payload[8 + word * 4 : 12 + word * 4][::-1] for word in range(8))
     pab = raw[0]
     message_type = read_bits_msb(raw, 8, 6)

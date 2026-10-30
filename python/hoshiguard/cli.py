@@ -1,4 +1,4 @@
-"""Small production CLI; evidence/legacy outputs live under `diagnose`."""
+"""本番用 CLI。証跡分析と旧形式の出力は `diagnose` で扱う。"""
 from __future__ import annotations
 
 import argparse

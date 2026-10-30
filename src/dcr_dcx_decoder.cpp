@@ -84,6 +84,6 @@ bool decodeDcxMt44(const QzssL1sFrame &frame, DcxDecodeResult &result) {
 #undef READ_DCX
   static const char *const names[4] = {"test", "alert", "update", "all_clear"};
   result.alertMessageName = names[result.alertMessageType & 3U];
-  result.supported = true;  // All CAMF common fields above are version-004 fields.
+  result.supported = true;  // 上記の CAMF 共通フィールドはすべて version-004 のフィールド。
   return true;
 }

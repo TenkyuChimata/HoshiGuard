@@ -65,7 +65,7 @@ void test_ubx_noise_and_resync() {
   UbxPacketView packet = {};
   for (size_t i = 0; i < sizeof(noise); ++i) parser.feed(noise[i], packet);
   bool found = false;
-  // noise ends in B5; start at packet's second sync byte.
+  // ノイズ末尾が B5 のため、packet の 2 番目の同期 byte から開始する。
   for (size_t i = 1; i < length; ++i) found |= parser.feed(data[i], packet);
   TEST_ASSERT_TRUE(found);
   TEST_ASSERT_GREATER_THAN_UINT32(0, parser.stats().resyncs);

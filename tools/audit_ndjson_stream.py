@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Audit an NDJSON file without trusting its filename or claimed mode."""
+"""ファイル名や申告モードを前提とせず NDJSON を検証する。"""
 
 from __future__ import annotations
 
@@ -88,15 +88,15 @@ def audit(ndjson: str, archive: str) -> dict:
         confidence = "ambiguous"
     if confidence == "inferred_from_record_type" and actual_mode == "semantic_observations":
         finding = (
-            "The filename cannot establish mode. Business records prove the "
-            "then-default semantic mode suppressed repeated frames. Output "
-            "sequences beyond the archive, if present, indicate different close "
-            "boundaries rather than Bridge loss.")
+            "ファイル名だけでモードは判定できません。業務レコードは、"
+            "当時の既定である意味単位の出力で反復フレームを抑制したことを示します。"
+            "アーカイブ外の出力 sequence がある場合は終了境界の差を示し、"
+            "Bridge の欠落とは区別します。")
     elif confidence == "explicit_metadata":
-        finding = (f"Stream mode is explicitly declared as {actual_mode}; "
-                   "accounting is evaluated according to that mode.")
+        finding = (f"ストリームモードは {actual_mode} と明示されています。"
+                   "集計はそのモードに従って評価します。")
     else:
-        finding = "Stream mode cannot be established unambiguously."
+        finding = "ストリームモードを一意に判定できません。"
     return {
         "schema": "hoshiguard.ndjson_stream_audit.v1",
         "source": {"path": str(path), "size_bytes": path.stat().st_size,
@@ -133,13 +133,13 @@ def main() -> int:
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(json.dumps(result, indent=2, sort_keys=True) + "\n")
     target.with_suffix(".md").write_text(
-        "# Soak NDJSON mode audit\n\n"
-        f"- Actual mode: `{result['actual_stream_mode']}` "
+        "# 長時間 NDJSON モード検証\n\n"
+        f"- 実際のモード: `{result['actual_stream_mode']}` "
         f"({result['mode_evidence']})\n"
-        f"- Objects: {result['objects']}\n"
-        f"- Archive L1S: {result['archive']['l1s_frames']}\n"
-        f"- Missing stream metadata: {result['stream_mode_metadata'].get('missing', 0)}\n"
-        f"- Sequences outside archive: `{result['output_sequences_outside_archive']}`\n\n"
+        f"- オブジェクト数: {result['objects']}\n"
+        f"- アーカイブ L1S 数: {result['archive']['l1s_frames']}\n"
+        f"- ストリーム情報の欠落数: {result['stream_mode_metadata'].get('missing', 0)}\n"
+        f"- アーカイブ外の sequence: `{result['output_sequences_outside_archive']}`\n\n"
         f"{result['finding']}\n", encoding="utf-8")
     print(json.dumps(result, indent=2, sort_keys=True))
     return 0

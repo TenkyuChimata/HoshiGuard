@@ -88,9 +88,7 @@ class BridgeTransport {
   HardwareSerial &serial_;
   bridge::RecordQueue<BRIDGE_QUEUE_DEPTH, bridge::kMaximumEncodedFrame,
                       BRIDGE_L1S_RESERVED_SLOTS> queue_;
-  // The bridge is driven only from the main loop. Keeping the encode workspace
-  // in this single transport instance avoids placing three complete frames on
-  // the STM32F103 stack for every received L1S packet.
+  // Bridge はメインループのみで駆動する。エンコード領域をこのインスタンスに置き、L1S 受信ごとに完全な 3 フレーム分を STM32F103 のスタックへ配置することを避ける。
   uint8_t logicalScratch_[bridge::kMaximumLogicalFrame];
   uint8_t wireScratch_[bridge::kMaximumEncodedFrame];
   uint8_t l1sPayloadScratch_[20U + bridge::kMaximumUbxLength];

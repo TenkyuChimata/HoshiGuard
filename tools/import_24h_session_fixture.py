@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministically import a compact fixture from the real 24-hour soak."""
+"""実機の 24 時間証跡から小さな fixture を決定的に抽出する。"""
 
 from __future__ import annotations
 
@@ -170,21 +170,11 @@ def build(source: Path) -> dict[str, str | bytes]:
         "status": summary["status"],
         "zero_l1s_drop_proven": summary["zero_l1s_drop_proven"],
     }
-    readme = f"""# HoshiGuard real 24-hour Bridge fixture
 
-Deterministically selected from real-hardware firmware 0.2.5 session
-`{summary['source']['sha256']}`. The 27 MB source is not copied. Exact wire
-records cover both ends, each observed frame/MT/satellite/PAB, every hour,
-queue high-watermark changes, actual DCR/DCX variants and the maximum L1S gap.
-
-This is inherited Bridge 1.0/path evidence, not a claim that firmware 0.2.7
-itself has completed a 24-hour hardware soak. No NAV-PVT or coordinates exist.
-"""
     return {
         "manifest.json": json.dumps(manifest, indent=2, sort_keys=True) + "\n",
         "expected_summary.json": json.dumps(expected, indent=2, sort_keys=True) + "\n",
         "selected_records.hgraw": archive_bytes(item[0] for item in ordered),
-        "README.md": readme,
     }
 
 

@@ -1,4 +1,4 @@
-"""Target-area helpers retain raw codes; target area is never receiver position."""
+"""対象地域の原コードを保持する補助処理。対象地域は受信機の位置ではない。"""
 
 from __future__ import annotations
 
@@ -32,8 +32,7 @@ def areas_from_extended(extended: ExtendedFields) -> tuple[AlertArea, ...]:
     if "EX9_target_area_code_list" in fields:
         value = fields["EX9_target_area_code_list"]
         if fields.get("EX8_target_area_list_type") == 0:
-            # DCX-004 Figure 4.2-7: low 47 bits are prefectures; high 17
-            # bits are reserved and must never become geographic targets.
+            # DCX-004 図 4.2-7: 下位 47 bit は都道府県、上位 17 bit は予約値であり対象地域に変換しない。
             return tuple(AlertArea(index + 1, qzss_dcr_jma_prefecture.get(index + 1),
                                    "prefecture_code", {"mask_bit": index})
                          for index in range(47) if value & (1 << index))

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Create a binary-garbage-free, optionally privacy-sanitized capture copy."""
+"""バイナリノイズを除き、任意でプライバシー処理した捕捉データのコピーを作る。"""
 
 from __future__ import annotations
 

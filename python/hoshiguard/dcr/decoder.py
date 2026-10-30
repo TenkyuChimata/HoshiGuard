@@ -1,8 +1,7 @@
-"""MT43 decoder wrapper with the DCR-017 additive code/time updates.
+"""DCR-017 の時刻・コード追加に対応する MT43 decoder wrapper。
 
-The exhaustive field/table implementation is the MIT-licensed azarashi 0.16.3
-semantic core (vendored with its license). HoshiGuard independently validates
-UBX/L1S before invoking it and preserves every raw field in its canonical model.
+全フィールド・テーブルの意味解析には、MIT ライセンスの azarashi 0.16.3 をライセンスと共に同梱する。
+HoshiGuard は呼び出し前に UBX/L1S を独立検証し、正規モデルに原フィールドを保持する。
 """
 
 from __future__ import annotations
@@ -38,7 +37,7 @@ def decode_dcr(frame: VerifiedL1s, receipt_time: datetime | None = None,
         report = HexQzssDcrDecoder(
             sentence=frame.raw.hex().upper()[:63], timestamp=receipt_time
         ).decode()
-    except Exception as exc:  # vendor exposes several typed decoder exceptions
+    except Exception as exc:  # vendor は複数の型付きデコード例外を公開する
         raise DcrDecodeError(str(exc)) from exc
     fields = report.get_params()
     fields.pop("message", None)
@@ -76,9 +75,7 @@ def decode_dcr(frame: VerifiedL1s, receipt_time: datetime | None = None,
     information_type = int(fields.get("information_type_no", 0) or 0)
     action = {0: "issue", 1: "update", 2: "cancel"}.get(information_type,
                                                            "unknown")
-    # DCR-016 service-specific clear values are semantic lifecycle actions even
-    # when the generic Information Type remains "issue".  The July 2026
-    # official scenario oracle exercises both cases.
+    # DCR-016 の種別固有の解除値は、共通 Information Type が issue でもライフサイクル上の clear を示す。2026 年 7 月公式シナリオの期待値は両方を扱う。
     if (action != "cancel" and disaster_category == 5 and
             int(fields.get("tsunami_warning_code_raw", -1)) == 2):
         action = "clear"

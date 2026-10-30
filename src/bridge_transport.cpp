@@ -62,8 +62,7 @@ bool BridgeTransport::enqueue(bridge::FrameType type, bridge::Priority priority,
     ++stats_.framesDropped;
     if (queue_.lastEvictedPriority() == bridge::Priority::Critical)
       ++stats_.criticalDropped;
-    // L1S frames cannot be replaced by lower-priority records. A later L1S
-    // may replace STATUS/TIME, so no L1S drop is charged here.
+    // 低優先レコードで L1S を置換しない。後続 L1S は STATUS/TIME を置換できるため、ここでは L1S の欠落を加算しない。
   }
   ++stats_.framesQueued;
   if (validL1s) ++stats_.l1sQueued;
@@ -83,14 +82,14 @@ bool BridgeTransport::enqueueHello(uint64_t timestampUs,
   payload[3] = HOSHIGUARD_VERSION_MINOR;
   payload[4] = HOSHIGUARD_VERSION_PATCH;
   payload[5] = CAPTURE_PRIVACY_MODE != 0 ? 1U : 0U;
-  payload[6] = 1U;  // little-endian logical layout
-  payload[7] = 1U;  // CRC identifier 1 = CRC-32/ISO-HDLC
+  payload[6] = 1U;  // リトルエンディアンの論理配置
+  payload[7] = 1U;  // CRC 識別子 1 = CRC-32/ISO-HDLC
   uint32_t features = 0U;
-  features |= 1UL << 0;  // full UBX evidence
+  features |= 1UL << 0;  // 完全な UBX 証跡
   features |= 1UL << 1;  // PPS
   features |= 1UL << 2;  // TIM-TP
   features |= 1UL << 3;  // numWords=9
-  features |= 1UL << 4;  // numWords=8 trusted legacy
+  features |= 1UL << 4;  // numWords=8 の検証済み旧形式
   bridge::putU32Le(payload + 8U, features);
   bridge::putU32Le(payload + 12U, DEBUG_BAUD);
   bridge::putU32Le(payload + 16U, currentBaud);

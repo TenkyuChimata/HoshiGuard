@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Produce segmented, time, throughput and semantic audits for a soak archive."""
+"""長時間アーカイブの区間・時刻・スループット・意味を検証する。"""
 
 from __future__ import annotations
 
@@ -40,11 +40,11 @@ def main() -> int:
         "schema": "hoshiguard.soak_hourly.v1", "source": report["source"],
         "hours": report["hourly"]})
     for key, filename, title in (
-        ("time_quality", "soak-24h-time-quality", "24-hour PPS/time-quality audit"),
-        ("throughput", "soak-24h-throughput", "24-hour throughput audit"),
-        ("semantic", "soak-24h-semantic-analysis", "24-hour semantic audit"),
-        ("events", "soak-24h-event-analysis", "24-hour event audit"),
-        ("coverage", "soak-24h-coverage", "24-hour message coverage"),
+        ("time_quality", "soak-24h-time-quality", "長時間 PPS・時刻品質検証"),
+        ("throughput", "soak-24h-throughput", "長時間スループット検証"),
+        ("semantic", "soak-24h-semantic-analysis", "長時間の意味解析検証"),
+        ("events", "soak-24h-event-analysis", "長時間イベント検証"),
+        ("coverage", "soak-24h-coverage", "長時間メッセージ対応範囲"),
     ):
         value = {"schema": f"hoshiguard.{filename.replace('-', '_')}.v1",
                  "evidence_source": "real_hardware", "source": report["source"],

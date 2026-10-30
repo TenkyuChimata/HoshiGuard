@@ -27,11 +27,10 @@ class UbxParser {
  public:
   UbxParser();
 
-  // Returns true exactly once for each checksum-valid packet. The payload view
-  // remains valid until more bytes are fed to this parser.
+  // checksum が正しい packet ごとに一度だけ true を返す。payload の参照は次の byte を入力するまで有効。
   bool feed(uint8_t byte, UbxPacketView &packet);
   void reset();
-  // Discard a partial packet/NMEA line without changing cumulative counters.
+  // 累積カウンターを変えず、途中の packet/NMEA 行を破棄する。
   void resetStreamState();
   const UbxParserStats &stats() const { return stats_; }
 

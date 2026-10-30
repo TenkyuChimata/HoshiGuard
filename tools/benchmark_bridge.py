@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Deterministic one-hour v0.2.4-arrival Bridge pressure benchmark."""
+"""v0.2.4 の実受信間隔を使う、1 時間分の決定的な Bridge 負荷測定。"""
 
 from __future__ import annotations
 
@@ -58,7 +58,7 @@ def main() -> int:
     manifest = json.loads((ROOT / "test/fixtures/real/manifest.json").read_text())
     real = [item for item in manifest["fixtures"] if item.get("expected_l1s")]
     arrivals = load_arrivals()
-    # Event tuple: timestamp_us, priority (0 critical/1 L1S/2 time/3 status), bytes
+    # イベント tuple: timestamp_us、優先度（0 critical/1 L1S/2 time/3 status）、byte 数
     events = []
     seq = 0
     for index, timestamp in enumerate(arrivals):

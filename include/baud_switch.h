@@ -50,9 +50,7 @@ BaudSwitchResult evaluateBaudSwitchEvidence(bool enabled,
 size_t buildBaudValsetPacket(uint32_t baud, uint8_t layers, uint8_t *output,
                              size_t capacity);
 
-// Finite recovery order required after new-baud verification fails. The first
-// two probes deliberately retry target then original; the final three are the
-// bounded auto-detection fallback. Duplicates are retained as fresh probes.
+// 新 baud 検証失敗後の復旧順序。最初に目標値、次に元の値を再試行し、最後の 3 回は回数を制限した自動検出を行う。重複する baud も新しい試行として扱う。
 class BaudRecoverySequence {
  public:
   BaudRecoverySequence();

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Binary-safe HoshiGuard capture input shared by command-line tools."""
+"""コマンドラインツール共通の、バイナリを壊さない捕捉入力。"""
 
 from __future__ import annotations
 
@@ -36,7 +36,7 @@ def _printable_record(candidate: bytes) -> bool:
 
 
 def find_first_record_offset(data: bytes) -> int:
-    """Return the first structurally plausible HoshiGuard record offset."""
+    """構造が妥当な最初の HoshiGuard レコードの offset を返す。"""
     for match in TRUSTED_RECORD_RE.finditer(data):
         end = data.find(b"\n", match.start())
         if end < 0:

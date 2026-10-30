@@ -1,4 +1,4 @@
-"""MT44/DCX-004 and CAMF Issue 1.2 decoder."""
+"""MT44/DCX-004 と CAMF Issue 1.2 のデコーダー。"""
 
 from __future__ import annotations
 

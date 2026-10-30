@@ -1,4 +1,4 @@
-"""Optional-pyserial reconnecting Bridge receiver."""
+"""任意依存の pyserial を使い、自動再接続する Bridge 受信処理。"""
 
 from __future__ import annotations
 
@@ -91,7 +91,7 @@ class SerialReceiver:
                         if self.stats.waiting_for_hello and not hello:
                             continue
                         if hello:
-                            # Do not unlock a new epoch on a malformed HELLO.
+                            # 不正な HELLO で新 epoch を許可しない。
                             from .bridge_frames import parse_payload
                             try:
                                 parsed = parse_payload(frame)

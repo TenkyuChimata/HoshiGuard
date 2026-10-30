@@ -35,7 +35,7 @@
   "scenarios": [
     {
       "id": 1,
-      "title": "EEW, hypocenter, intensity, tsunami warning",
+      "title": "緊急地震速報・震源・震度・津波警報",
       "windows": [{"run": 1, "utc_start": "2026-07-14T04:00:00Z", "utc_end": "2026-07-14T04:25:00Z"}, {"run": 2, "utc_start": "2026-07-30T01:00:00Z", "utc_end": "2026-07-30T01:25:00Z"}],
       "messages": [
         {"id": "1_eew", "Dc": 1, "At_utc_by_run": {"1": "2026-07-14T04:00:00Z", "2": "2026-07-30T01:00:00Z"}, "It": 0, "expected": {"long_period_lower_raw": 3, "long_period_upper_raw": 3, "notifications_raw": [201, 0, 0], "occurrence_time_equals_At": true, "depth_km": 10, "magnitude_raw": 72, "epicenter_raw": 791, "intensity_lower_raw": 8, "intensity_upper_raw": 11, "forecast_region_bits_set": [37, 38, 39, 40, 42, 43, 44, 45, 46, 47, 48, 49, 50, 51, 66, 67, 68]}},
@@ -45,20 +45,20 @@
       ]
     },
     {
-      "id": 2, "title": "Tsunami warning update",
+      "id": 2, "title": "津波警報の更新",
       "windows": [{"run": 1, "utc_start": "2026-07-14T04:25:00Z", "utc_end": "2026-07-14T04:35:00Z"}, {"run": 2, "utc_start": "2026-07-30T01:25:00Z", "utc_end": "2026-07-30T01:35:00Z"}],
       "messages": [{"id": "2_tsunami_update", "Dc": 5, "At_utc_by_run": {"1": "2026-07-14T04:25:00Z", "2": "2026-07-30T01:25:00Z"}, "It": 0, "action": "update", "expected": {"notifications_raw": [122, 123, 124], "warning_code_raw": 3, "arrival_time_equals_At": true, "entries": [{"height_raw": 3, "region_raw": 600}, {"height_raw": 3, "region_raw": 610}, {"height_raw": 3, "region_raw": 751}, {"height_raw": 3, "region_raw": 760}]}}]
     },
     {
-      "id": 3, "title": "Nankai Trough and tsunami clear",
+      "id": 3, "title": "南海トラフ地震情報・津波警報解除",
       "windows": [{"run": 1, "utc_start": "2026-07-14T04:35:00Z", "utc_end": "2026-07-14T05:05:00Z"}, {"run": 2, "utc_start": "2026-07-30T01:35:00Z", "utc_end": "2026-07-30T02:05:00Z"}],
       "messages": [
         {"id": "3_nankai", "Dc": 4, "At_utc_by_run": {"1": "2026-07-14T04:35:00Z", "2": "2026-07-30T01:35:00Z"}, "It": 0, "expected": {"information_serial_code_raw": 5, "text_utf8": "南海トラフ沿いのプレート境界で通常とは異なるゆっくりすべりが発生していることが推定されます。この通常とは異なるゆっくりすべりの発生により、南海トラフ地震の想定震源域では、大規模地震の発生可能性が平常時に比べて相対的に高まっていると考えられます。今後の政府や自治体などからの呼びかけ等に応じた防災対応をとってください。", "characters_per_page": 6, "expected_characters": 158, "expected_utf8_bytes": 474, "expected_pages": 27, "page_fields": ["Pn", "Pm"], "arrival_order_significant": false, "raw_pages_retained": true}},
-        {"id": "3_tsunami_clear", "Dc": 5, "At_utc_by_run": {"1": "2026-07-14T04:35:00Z", "2": "2026-07-30T01:35:00Z"}, "It": 0, "action": "clear", "expected": {"notifications_raw": [103, 0, 0], "warning_code_raw": 2, "arrival_time_equals_At": true, "entries": [{"height_raw": 3, "region_raw": 600}, {"height_raw": 3, "region_raw": 610}, {"height_raw": 3, "region_raw": 751}, {"height_raw": 3, "region_raw": 760}], "source_note": "PDF prose says Pl_1..Pl_5 but its table supplies four regions; manifest preserves the four explicit rows."}}
+        {"id": "3_tsunami_clear", "Dc": 5, "At_utc_by_run": {"1": "2026-07-14T04:35:00Z", "2": "2026-07-30T01:35:00Z"}, "It": 0, "action": "clear", "expected": {"notifications_raw": [103, 0, 0], "warning_code_raw": 2, "arrival_time_equals_At": true, "entries": [{"height_raw": 3, "region_raw": 600}, {"height_raw": 3, "region_raw": 610}, {"height_raw": 3, "region_raw": 751}, {"height_raw": 3, "region_raw": 760}], "source_note": "PDF 本文は Pl_1..Pl_5 と記載するが、表は 4 地域を示す。manifest は明記された 4 行を保持する。"}}
       ]
     },
     {
-      "id": 4, "title": "Volcano and ash-fall rapid forecast",
+      "id": 4, "title": "火山情報・降灰予報（速報）",
       "windows": [{"run": 1, "utc_start": "2026-07-14T05:10:00Z", "utc_end": "2026-07-14T05:20:00Z"}, {"run": 2, "utc_start": "2026-07-30T02:10:00Z", "utc_end": "2026-07-30T02:20:00Z"}],
       "messages": [
         {"id": "4_volcano", "Dc": 8, "At_utc_by_run": {"1": "2026-07-14T05:10:00Z", "2": "2026-07-30T02:10:00Z"}, "It": 0, "expected": {"activity_ambiguity_raw": 0, "activity_time_equals_At": true, "warning_code_raw": 52, "volcano_raw": 503, "municipalities_raw": [4321400, 4342800, 4343300]}},
@@ -66,12 +66,12 @@
       ]
     },
     {
-      "id": 5, "title": "Detailed ash fall, five parts / 18 locations",
+      "id": 5, "title": "降灰予報（詳細）: 5 通・18 地点",
       "windows": [{"run": 1, "utc_start": "2026-07-14T05:20:00Z", "utc_end": "2026-07-14T05:30:00Z"}, {"run": 2, "utc_start": "2026-07-30T02:20:00Z", "utc_end": "2026-07-30T02:30:00Z"}],
       "messages": [{"id": "5_ash_detail", "Dc": 9, "At_utc_by_run": {"1": "2026-07-14T05:20:00Z", "2": "2026-07-30T02:20:00Z"}, "It": 0, "expected_parts": 5, "common_fields": {"Rc": 7, "Dc": 9, "It": 0, "activity_time_equals_At": true, "warning_type_raw": 2, "volcano_raw": 503}, "expected": {"locations_total": 18, "max_locations_per_message": 4, "entries_in_order": [{"part": 1, "forecast_hour": 1, "warning_code_raw": 2, "municipality_raw": 4321400}, {"part": 1, "forecast_hour": 1, "warning_code_raw": 2, "municipality_raw": 4342800}, {"part": 1, "forecast_hour": 1, "warning_code_raw": 1, "municipality_raw": 4343300}, {"part": 1, "forecast_hour": 2, "warning_code_raw": 1, "municipality_raw": 4321400}, {"part": 2, "forecast_hour": 2, "warning_code_raw": 1, "municipality_raw": 4342800}, {"part": 2, "forecast_hour": 2, "warning_code_raw": 1, "municipality_raw": 4343300}, {"part": 2, "forecast_hour": 3, "warning_code_raw": 1, "municipality_raw": 4321400}, {"part": 2, "forecast_hour": 3, "warning_code_raw": 1, "municipality_raw": 4342800}, {"part": 3, "forecast_hour": 3, "warning_code_raw": 1, "municipality_raw": 4343300}, {"part": 3, "forecast_hour": 4, "warning_code_raw": 1, "municipality_raw": 4321400}, {"part": 3, "forecast_hour": 4, "warning_code_raw": 1, "municipality_raw": 4342800}, {"part": 3, "forecast_hour": 4, "warning_code_raw": 1, "municipality_raw": 4343300}, {"part": 4, "forecast_hour": 5, "warning_code_raw": 1, "municipality_raw": 4321400}, {"part": 4, "forecast_hour": 5, "warning_code_raw": 1, "municipality_raw": 4342800}, {"part": 4, "forecast_hour": 5, "warning_code_raw": 1, "municipality_raw": 4343300}, {"part": 4, "forecast_hour": 6, "warning_code_raw": 1, "municipality_raw": 4321400}, {"part": 5, "forecast_hour": 6, "warning_code_raw": 1, "municipality_raw": 4342800}, {"part": 5, "forecast_hour": 6, "warning_code_raw": 1, "municipality_raw": 4343300}]}}]
     },
     {
-      "id": 6, "title": "Weather and flood",
+      "id": 6, "title": "気象・洪水",
       "windows": [{"run": 1, "utc_start": "2026-07-14T05:35:00Z", "utc_end": "2026-07-14T05:50:00Z"}, {"run": 2, "utc_start": "2026-07-30T02:35:00Z", "utc_end": "2026-07-30T02:50:00Z"}],
       "messages": [
         {"id": "6_weather", "Dc": 10, "At_utc_by_run": {"1": "2026-07-14T05:35:00Z", "2": "2026-07-30T02:35:00Z"}, "It": 0, "expected_parts": 3, "common_fields": {"Rc": 7, "Dc": 10, "It": 0, "warning_state_raw": 1}, "expected": {"locations_total": 14, "max_locations_per_message": 6, "sort": ["sub_category_raw", "forecast_region_raw"], "entries_in_order": [{"part": 1, "sub_category_raw": 2, "forecast_region_raw": 80000}, {"part": 1, "sub_category_raw": 2, "forecast_region_raw": 90000}, {"part": 1, "sub_category_raw": 2, "forecast_region_raw": 100000}, {"part": 1, "sub_category_raw": 2, "forecast_region_raw": 110000}, {"part": 1, "sub_category_raw": 2, "forecast_region_raw": 120000}, {"part": 1, "sub_category_raw": 2, "forecast_region_raw": 130000}, {"part": 2, "sub_category_raw": 2, "forecast_region_raw": 140000}, {"part": 2, "sub_category_raw": 23, "forecast_region_raw": 80000}, {"part": 2, "sub_category_raw": 23, "forecast_region_raw": 90000}, {"part": 2, "sub_category_raw": 23, "forecast_region_raw": 100000}, {"part": 2, "sub_category_raw": 23, "forecast_region_raw": 110000}, {"part": 2, "sub_category_raw": 23, "forecast_region_raw": 120000}, {"part": 3, "sub_category_raw": 23, "forecast_region_raw": 130000}, {"part": 3, "sub_category_raw": 23, "forecast_region_raw": 140000}]}},
@@ -79,7 +79,7 @@
       ]
     },
     {
-      "id": 7, "title": "Flood warning clear",
+      "id": 7, "title": "洪水警報解除",
       "windows": [{"run": 1, "utc_start": "2026-07-14T05:50:00Z", "utc_end": "2026-07-14T06:00:00Z"}, {"run": 2, "utc_start": "2026-07-30T02:50:00Z", "utc_end": "2026-07-30T03:00:00Z"}],
       "messages": [{"id": "7_flood_clear", "Dc": 11, "At_utc_by_run": {"1": "2026-07-14T05:50:00Z", "2": "2026-07-30T02:50:00Z"}, "It": 0, "action": "clear", "expected": {"entries": [{"warning_level_raw": 1, "forecast_region_raw": 830303020300}]}}]
     }

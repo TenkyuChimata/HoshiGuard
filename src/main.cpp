@@ -20,8 +20,8 @@
 #include "ubx_dispatcher.h"
 #include "ubx_parser.h"
 
-// STM32duino HardwareSerial constructor order is (RX pin, TX pin). This board
-// variant generates Serial2 on PA3/PA2, while USART1 is created explicitly.
+// STM32duino HardwareSerial のコンストラクター引数は (RX pin, TX pin)。
+// この基板では Serial2 が PA3/PA2 に生成され、USART1 は明示的に作成する。
 HardwareSerial DebugUart(DEBUG_RX_PIN, DEBUG_TX_PIN);
 LogArbiter DebugSerial(DebugUart);
 
@@ -532,10 +532,8 @@ void beginStartupGnss(void *) {
 void setup() {
   DebugSerial.begin(DEBUG_BAUD);
 #if BRIDGE_BINARY_MODE
-  // MaxM10s keeps its existing diagnostic Print dependency, but production
-  // binary mode suppresses all text before any byte reaches USART1. Bridge
-  // records alone own the physical stream, so 0x00 remains a reliable frame
-  // boundary.
+  // MaxM10s の診断用 Print 依存は維持するが、本番バイナリモードでは USART1 への全テキスト出力を抑止する。
+  // 物理ストリームは Bridge 専用とし、0x00 によるフレーム境界を保つ。
   DebugSerial.setSuppressed(true);
   bridgeTransport.begin();
 #endif
@@ -573,7 +571,7 @@ void loop() {
   return;
 #endif
   if (gnss.consumeParserResetRequest()) ubx.resetStreamState();
-  (void)extendedMicros();  // Extend micros() before a possible 32-bit wrap.
+  (void)extendedMicros();  // 32 bit の周回が起きる前に micros() を拡張する。
   if (pps.update(ppsState)) {
     const uint32_t generation = timeSync.timTpMatchGeneration();
     timeSync.observePps(ppsState.sequence, ppsState.edgeMicros);
@@ -587,8 +585,7 @@ void loop() {
           match.ambiguous, timeQualityName(timeSync.quality()),
           timeConfirmReasonName(timeSync.confirmReason()));
     }
-    // A new edge needs a new NAV-PVT epoch before it receives even a tentative
-    // UTC assignment.
+    // 新しいエッジへの暫定 UTC 割り当てにも、新しい NAV-PVT epoch が必要。
     utc.associatedWithPps = false;
     utc.ppsSequence = 0U;
     utc.quality = TimeQuality::PpsObserved;

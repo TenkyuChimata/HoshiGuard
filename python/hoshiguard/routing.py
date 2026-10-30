@@ -1,4 +1,4 @@
-"""Route independently verified L1S frames to service decoders."""
+"""独立検証済みの L1S フレームをサービス別デコーダーに振り分ける。"""
 
 from __future__ import annotations
 
@@ -36,9 +36,7 @@ def service_for_mt(mt: int) -> tuple[AlertService, bool, str]:
 
 def _event_key(service: AlertService, status: str, category: AlertCode,
                payload) -> str:
-    # Actual and test messages occupy separate event spaces. The key remains
-    # explainable; confidence is limited when the normative fields do not
-    # provide a globally unique event identifier.
+    # 正式・試験メッセージは別のイベント空間に置く。key は仕様で説明できる値から作り、仕様に一意なイベント ID がない場合は信頼度を制限する。
     identity_parts = [service.value, status, str(category.code)]
     if service == AlertService.DCR and hasattr(payload, "fields"):
         fields = dict(payload.fields)
@@ -160,9 +158,7 @@ def make_alert(bridge: BridgeFrame, claim: ClaimedL1sFrame,
                                         8, 6, "reserved_or_unknown_mt"))
     validity = AlertValidity(bridge_crc, True, frame.valid_crc,
                              frame.valid_pab, semantics, complete)
-    # First build the immutable semantic model without identity.  Identity is
-    # then derived from that model so receipt/raw transport evidence can never
-    # leak into the v2 semantic fingerprint.
+    # まず識別子を含まない不変の意味モデルを作り、そこから識別子を導出する。受信・伝送 raw 証跡を v2 semantic fingerprint に混入させない。
     placeholder = AlertIdentity("", "", SEMANTIC_FINGERPRINT_VERSION,
                                 _event_key(service, status, category, payload),
                                 "limited")
