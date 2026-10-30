@@ -108,7 +108,10 @@ def canonical_semantic(alert: UnifiedAlert) -> dict[str, Any]:
     return {
         "semantic_fingerprint_version": SEMANTIC_FINGERPRINT_VERSION,
         "service": alert.service.value,
-        "spec": alert.spec,
+        # 017 retains the 016 wire layout. Pin this existing v2 identity
+        # namespace so a specification-label update cannot republish every
+        # unchanged observation. Newly defined semantic fields still hash.
+        "spec": "IS-QZSS-DCR-016" if alert.service.value == "DCR" and alert.spec == "IS-QZSS-DCR-017" else alert.spec,
         "status": alert.status,
         "action": alert.action,
         "alert": alert.alert,

@@ -8,6 +8,7 @@ from .bridge_frames import L1sFrame as ClaimedL1sFrame
 from .bridge_protocol import BridgeFrame
 from .dcr.decoder import decode_dcr
 from .dcr.reassembly import NankaiTroughReassembler
+from .dcr.tables import unknown_codes
 from .dcx.decoder import decode_dcx
 from .l1s import VerifiedL1s
 from .events.canonical import SEMANTIC_FINGERPRINT_VERSION, semantic_fingerprint
@@ -23,7 +24,7 @@ def service_for_mt(mt: int) -> tuple[AlertService, bool, str]:
     if mt in (40, 41):
         return AlertService.RESERVED, False, "IS-QZSS-L1S-009"
     if mt == 43:
-        return AlertService.DCR, True, "IS-QZSS-DCR-016"
+        return AlertService.DCR, True, "IS-QZSS-DCR-017"
     if mt == 44:
         return AlertService.DCX, True, "IS-QZSS-DCX-004/CAMF-1.2"
     if mt in (47, 48, 49, 50, 51):
@@ -58,7 +59,8 @@ def _event_key(service: AlertService, status: str, category: AlertCode,
 
 def make_alert(bridge: BridgeFrame, claim: ClaimedL1sFrame,
                frame: VerifiedL1s, bridge_crc: bool = True,
-               dcr_reassembler: NankaiTroughReassembler | None = None
+               dcr_reassembler: NankaiTroughReassembler | None = None,
+               receipt_time: datetime | None = None,
                ) -> UnifiedAlert:
     service, is_alert, spec = service_for_mt(frame.message_type)
     receipt = AlertReceipt(bridge.sequence, bridge.timestamp_us,
@@ -81,9 +83,18 @@ def make_alert(bridge: BridgeFrame, claim: ClaimedL1sFrame,
     payload = {"raw_payload_hex": frame.raw.hex().upper()[:57]}
     if service == AlertService.DCR:
         payload, category, status, action, fields = decode_dcr(
-            frame, reassembler=dcr_reassembler)
+            frame, receipt_time=receipt_time, reassembler=dcr_reassembler)
         report_time = fields.get("report_time")
         times = AlertTimes(issued=str(report_time) if report_time else None)
+        unknown.extend(unknown_codes(fields))
+        if unknown:
+            complete = False
+        if status == "unknown" or action == "unknown" or not category.known:
+            semantics, complete = False, False
+            unknown.append(UnknownField("dcr_header", {
+                "classification": fields.get("report_classification_no"),
+                "information_type": fields.get("information_type_no"),
+                "category": category.code}, reason="reserved_or_unknown_header"))
         if category.code == 4 and not fields.get("reassembly_complete", False):
             complete = False
             unknown.append(UnknownField(
@@ -92,15 +103,46 @@ def make_alert(bridge: BridgeFrame, claim: ClaimedL1sFrame,
                     "total": fields.get("total_page")},
                 reason="awaiting_bounded_nankai_reassembly"))
     elif service == AlertService.DCX:
-        payload, category, status, action, fields, areas = decode_dcx(frame)
+        payload, category, status, action, fields, areas = decode_dcx(frame, receipt_time)
         severity = {"code": payload.camf.a5_severity,
                     "raw": payload.camf.a5_severity}
+        if (not category.known or (payload.camf.a2_country_region == 111
+                                  and payload.extended.version != 1)):
+            semantics, complete = False, False
+            unknown.append(UnknownField("dcx_header", {
+                "category": category.code, "version": payload.extended.version},
+                reason="reserved_or_unsupported_header"))
+        if payload.camf.a10_library_version != 0:
+            complete = False
+            unknown.append(UnknownField("A10", payload.camf.a10_library_version,
+                                        67, 3, "unsupported_library_version"))
+        if payload.camf.a2_country_region > 248:
+            semantics, complete = False, False
+            unknown.append(UnknownField("A2", payload.camf.a2_country_region,
+                                        26, 9, "reserved_country_code"))
+        extension = dict(payload.extended.raw_fields)
+        reserved_prefectures = (extension.get("EX9_target_area_code_list", 0) >> 47
+                                if extension.get("EX8_target_area_list_type") == 0 else 0)
+        if reserved_prefectures:
+            complete = False
+            unknown.append(UnknownField("EX9_reserved", reserved_prefectures,
+                                        147, 17, "reserved_prefecture_bits"))
+        if extension.get("EX10_reserved", 0):
+            complete = False
+            unknown.append(UnknownField("EX10", extension["EX10_reserved"],
+                                        211, 3, "reserved_extension_bits"))
+        if not 1 <= payload.camf.a7_onset_minute_of_week <= 10080:
+            complete = False
+            unknown.append(UnknownField("A7", payload.camf.a7_onset_minute_of_week,
+                                        50, 14, "reserved_onset_time"))
         if payload.extended.blocked_by_missing_spec:
             complete = False
             for reason in payload.extended.blocked_by_missing_spec:
                 unknown.append(UnknownField("EX11", dict(payload.extended.raw_fields),
                                             146, 68, reason))
         if category.code == 0 and status == "not_applicable":
+            semantics, complete = True, True
+            unknown.clear()
             is_alert = False
             severity = None
             areas = ()

@@ -8,7 +8,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from hoshiguard import cli as cli_module
+from hoshiguard import diagnostics as cli_module
 from hoshiguard.bridge_protocol import FrameType
 from hoshiguard.l1s import L1sError
 from hoshiguard.output.raw_archive import RawArchiveReader, RawArchiveWriter
@@ -28,7 +28,7 @@ class CliOutputTests(unittest.TestCase):
                 f"numWords=9 pab=53 mt=43 crc=ok len=52 data={REAL['ubx_hex']}\n",
                 encoding="ascii")
             completed = subprocess.run(
-                [sys.executable, "-m", "hoshiguard", "--capture-log",
+                [sys.executable, "-m", "hoshiguard", "diagnose", "--capture-log",
                  str(capture), "--human", "--ndjson", str(output),
                  "--no-session-records"],
                 cwd=ROOT, text=True, capture_output=True, check=True)
@@ -43,7 +43,7 @@ class CliOutputTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             capture = Path(directory) / "capture.log"
             capture.write_bytes(b"garbage\xff\nUBX_RAW timestamp_us=1 len=8 data=NOTHEX\n")
-            subprocess.run([sys.executable, "-m", "hoshiguard",
+            subprocess.run([sys.executable, "-m", "hoshiguard", "diagnose",
                             "--capture-log", str(capture), "--human"],
                            cwd=ROOT, check=True, capture_output=True)
 
@@ -73,7 +73,7 @@ class CliOutputTests(unittest.TestCase):
                 return real_make_alert(*args, **kwargs)
 
             stderr = io.StringIO()
-            with patch("hoshiguard.cli.make_alert", side_effect=fail_first), \
+            with patch("hoshiguard.diagnostics.make_alert", side_effect=fail_first), \
                     redirect_stderr(stderr):
                 result = cli_module.main([
                     "--bridge-file", str(source), "--all-observations",
@@ -102,7 +102,7 @@ class CliOutputTests(unittest.TestCase):
 
     def test_unknown_programming_error_is_not_hidden(self):
         fixture = ROOT / "test/fixtures/bridge_real_session/selected_records.hgraw"
-        with patch("hoshiguard.cli.make_alert",
+        with patch("hoshiguard.diagnostics.make_alert",
                    side_effect=RuntimeError("programming defect")):
             with self.assertRaisesRegex(RuntimeError, "programming defect"):
                 cli_module.main(["--bridge-file", str(fixture),

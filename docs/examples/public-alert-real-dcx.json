@@ -1,0 +1,112 @@
+{
+  "schema": "hoshiguard.public-alert.v1",
+  "id": "sf2-87f1daeb5dd4ed14e378ca9dbbfb0a0e07285416889fab15ac1de3183b0a3f15",
+  "source": {
+    "name": "QZSS L1S",
+    "type": "satellite_broadcast",
+    "provider": {
+      "code": 1,
+      "name": "Foundation for MultiMedia Communications",
+      "country_region_code": 111
+    }
+  },
+  "service": "DCX",
+  "category": {
+    "code": 113,
+    "token": "TEST_ALERT",
+    "known": true,
+    "reserved": false,
+    "official_ja": null,
+    "official_en": "Test alert",
+    "chinese": null,
+    "translation_source": null
+  },
+  "status": "test",
+  "action": "issue",
+  "identity": {
+    "scope": "semantic_message_content",
+    "event_id": null,
+    "semantic_fingerprint": "87f1daeb5dd4ed14e378ca9dbbfb0a0e07285416889fab15ac1de3183b0a3f15",
+    "semantic_fingerprint_version": 2,
+    "correlation_hint": "DCX:test:113:111:1:0:4612:29449",
+    "correlation_confidence": "limited"
+  },
+  "times": {
+    "issued": null,
+    "received": "2026-07-16T04:51:29.421308+00:00",
+    "onset": null,
+    "expires": null,
+    "basis": "not_carried",
+    "onset_raw": {
+      "week": 0,
+      "minute_of_week": 4612
+    },
+    "duration_code": 2
+  },
+  "areas": [
+    {
+      "code": 29449,
+      "name": "Totsukawa-mura, Nara",
+      "kind": "target_area_code",
+      "raw": {
+        "code": 29449,
+        "name_authority": "snapshot_not_independently_audited_current_JIS"
+      }
+    }
+  ],
+  "severity": {
+    "code": 1,
+    "name": "moderate"
+  },
+  "payload": {
+    "type": "test_alert",
+    "camf": {
+      "a1_message_type": 0,
+      "a2_country_region": 111,
+      "a3_provider": 1,
+      "a4_hazard": 113,
+      "a5_severity": 1,
+      "a6_onset_week": 0,
+      "a7_onset_minute_of_week": 4612,
+      "a8_duration": 2,
+      "a9_library_selection": 1,
+      "a10_library_version": 0,
+      "a11_guidance": 0,
+      "a12_latitude": 0,
+      "a13_longitude": 0,
+      "a14_semi_major": 0,
+      "a15_semi_minor": 0,
+      "a16_azimuth": 0,
+      "a17_specific_kind": 0,
+      "a18_specific_settings": 0
+    },
+    "guidance": {
+      "code": 0,
+      "international": null,
+      "japanese": "",
+      "japanese_official": ""
+    },
+    "extended": {
+      "variant": "l_alert_ex1",
+      "version": 1,
+      "fields": {
+        "EX1_target_area_code": 29449
+      }
+    },
+    "limitations": []
+  },
+  "validity": {
+    "transport_verified": true,
+    "semantics": true,
+    "complete": true,
+    "category_known": true,
+    "category_reserved": false,
+    "unknown_fields": []
+  },
+  "is_real_disaster": false,
+  "provenance": {
+    "spec": "IS-QZSS-DCX-004/CAMF-1.2",
+    "input": "replay",
+    "format": "QZSS DCR/DCX; not original JMA XML"
+  }
+}

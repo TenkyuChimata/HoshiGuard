@@ -26,7 +26,9 @@ class ReceiverStats:
 class SerialReceiver:
     def __init__(self, port: str, baud: int = 115200,
                  reconnect: bool = True, reconnect_delay: float = 1.0,
-                 status_callback: Callable[[str], None] | None = None):
+                 status_callback: Callable[[str], None] | None = None,
+                 state_callback: Callable[[str], None] | None = None,
+                 error_callback: Callable[[int], None] | None = None):
         self.port = port
         self.baud = baud
         self.reconnect = reconnect
@@ -35,10 +37,20 @@ class SerialReceiver:
         self.sequence = SequenceTracker()
         self.stats = ReceiverStats()
         self.status_callback = status_callback
+        self.state_callback = state_callback
+        self.error_callback = error_callback
+
+    def _state(self, state: str) -> None:
+        if self.state_callback:
+            self.state_callback(state)
 
     def _status(self, message: str) -> None:
         if self.status_callback is not None:
             self.status_callback(message)
+
+    def _error_count(self) -> int:
+        stats = self.decoder.stats
+        return stats.cobs_errors + stats.crc_errors + stats.version_errors + stats.oversized
 
     def frames(self, stop=lambda: False):
         try:
@@ -51,11 +63,17 @@ class SerialReceiver:
                 connection = serial.Serial(self.port, self.baud, timeout=0.25)
                 self.stats.reconnects += 1
                 self.stats.waiting_for_hello = True
+                self._state("waiting_hello")
                 self._status(f"bridge_serial_connected port={self.port} "
                              f"baud={self.baud} waiting_for_hello=yes")
                 while not stop():
                     chunk = connection.read(256)
-                    for frame in self.decoder.feed(chunk):
+                    errors_before = self._error_count()
+                    decoded = self.decoder.feed(chunk)
+                    new_errors = self._error_count() - errors_before
+                    if new_errors and self.error_callback:
+                        self.error_callback(new_errors)
+                    for frame in decoded:
                         hello = frame.frame_type == FrameType.HELLO
                         result = self.sequence.observe(frame.sequence, hello=hello)
                         if result.missing:
@@ -73,7 +91,20 @@ class SerialReceiver:
                         if self.stats.waiting_for_hello and not hello:
                             continue
                         if hello:
+                            # Do not unlock a new epoch on a malformed HELLO.
+                            from .bridge_frames import parse_payload
+                            try:
+                                parsed = parse_payload(frame)
+                            except ValueError:
+                                if self.error_callback:
+                                    self.error_callback(1)
+                                continue
+                            if parsed.protocol_major != 1 or not parsed.little_endian or parsed.crc_identifier != 1:
+                                if self.error_callback:
+                                    self.error_callback(1)
+                                continue
                             self.stats.waiting_for_hello = False
+                            self._state("connected")
                             self._status(f"bridge_hello sequence={frame.sequence} "
                                          f"epoch={result.epoch}")
                         self.stats.frames += 1
@@ -81,11 +112,15 @@ class SerialReceiver:
             except (OSError, serial.SerialException):
                 self.stats.disconnects += 1
                 self.decoder.discard_partial()
+                self._state("disconnected")
                 self._status(f"bridge_serial_disconnected port={self.port} "
                              f"reconnect={'yes' if self.reconnect else 'no'}")
                 if not self.reconnect:
                     raise
-                time.sleep(self.reconnect_delay)
+                deadline = time.monotonic() + self.reconnect_delay
+                while not stop() and time.monotonic() < deadline:
+                    time.sleep(min(0.1, max(0, deadline - time.monotonic())))
             finally:
                 if connection is not None:
                     connection.close()
+        self._state("stopped")

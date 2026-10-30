@@ -166,14 +166,14 @@ class SemanticIdentityV2Tests(unittest.TestCase):
         self.assertEqual(repeat.pabs_seen,
                          tuple(sorted((base.receipt.pab, other_pab))))
 
-    def test_same_event_key_different_semantic_becomes_update(self):
+    def test_limited_event_key_does_not_merge_different_semantics(self):
         alert = alert_for("qzss_l1s_mt43_pab53")
         processor = EventProcessor()
         processor.observe(alert)
         changed_identity = replace(alert.identity, semantic_fingerprint="f" * 64)
         changed = replace(alert, identity=changed_identity,
                           receipt=replace(alert.receipt, timestamp_us=200))
-        self.assertEqual(processor.observe(changed).disposition, "updated")
+        self.assertEqual(processor.observe(changed).disposition, "issued")
         self.assertEqual(alert.identity.event_key, changed.identity.event_key)
 
     def test_real_same_semantic_pab_frames_keep_distinct_frame_fingerprint(self):
@@ -263,7 +263,7 @@ class SemanticIdentityV2Tests(unittest.TestCase):
         fixture_path = ROOT / "test/fixtures/bridge_real_session/selected_records.hgraw"
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "events.ndjson"
-            subprocess.run([sys.executable, "-m", "hoshiguard", "--bridge-file",
+            subprocess.run([sys.executable, "-m", "hoshiguard", "diagnose", "--bridge-file",
                             str(fixture_path), "--events-only", "--ndjson",
                             str(output)], cwd=ROOT, check=True, capture_output=True)
             values = [json.loads(line) for line in output.read_text().splitlines()

@@ -1,4 +1,4 @@
-"""MT43 decoder wrapper pinned to DCR-016 semantics.
+"""MT43 decoder wrapper with the DCR-017 additive code/time updates.
 
 The exhaustive field/table implementation is the MIT-licensed azarashi 0.16.3
 semantic core (vendored with its license). HoshiGuard independently validates
@@ -49,6 +49,12 @@ def decode_dcr(frame: VerifiedL1s, receipt_time: datetime | None = None,
         "hour": read_bits(frame.raw, 30, 5),
         "minute": read_bits(frame.raw, 35, 6),
     }
+    if disaster_category == 5:
+        fields["expected_tsunami_arrival_times_raw"] = [
+            {"day": read_bits(frame.raw, 84 + i * 26, 1),
+             "hour": read_bits(frame.raw, 85 + i * 26, 5),
+             "minute": read_bits(frame.raw, 90 + i * 26, 6)}
+            for i in range(len(fields.get("expected_tsunami_arrival_times", ())))]
     if disaster_category == 4:
         page = int(fields.get("page_number", 0) or 0)
         total = int(fields.get("total_page", 0) or 0)
@@ -73,12 +79,15 @@ def decode_dcr(frame: VerifiedL1s, receipt_time: datetime | None = None,
     # DCR-016 service-specific clear values are semantic lifecycle actions even
     # when the generic Information Type remains "issue".  The July 2026
     # official scenario oracle exercises both cases.
-    if (disaster_category == 5 and
+    if (action != "cancel" and disaster_category == 5 and
             int(fields.get("tsunami_warning_code_raw", -1)) == 2):
         action = "clear"
-    if disaster_category == 11:
+    if action != "cancel" and disaster_category == 11:
         levels = fields.get("flood_warning_levels_raw", ())
         if levels and all(int(value) == 1 for value in levels):
             action = "clear"
-    status = "test" if int(fields.get("report_classification_no", 0) or 0) == 7 else "actual"
+    if action != "cancel" and disaster_category == 10 and fields.get("weather_warning_state_raw") == 2:
+        action = "clear"
+    classification = fields.get("report_classification_no")
+    status = "test" if classification == 7 else "actual" if classification in (1, 2, 3) else "unknown"
     return payload, category(disaster_category), status, action, fields

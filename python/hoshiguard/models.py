@@ -1,4 +1,4 @@
-"""Canonical immutable alert model shared by human and NDJSON outputs."""
+"""Canonical alert model shared by public projections and diagnostic outputs."""
 
 from __future__ import annotations
 

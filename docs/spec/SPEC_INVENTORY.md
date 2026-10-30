@@ -20,3 +20,6 @@ The DCR-016 PDF itself says April 03, 2026. That internal date is used here.
 The older application note never overrides DCR-016 offsets or enumerations.
 The July test plan never defines DCX bit layout and is never used to fabricate
 broadcast binary fixtures.
+
+2026-10-30: DCR-017 official PDF added and compared with 016. See
+[the detailed audit](../dcr017_audit.md); existing source hashes/evidence remain.

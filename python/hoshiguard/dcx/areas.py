@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 
 from ..models import AlertArea
+from .._vendor.azarashi.qzss_dcr_lib.definition.qzss_dcr_jma_prefecture import qzss_dcr_jma_prefecture
 from .models import ExtendedFields
 
 _AREA_PATH = Path(__file__).resolve().parents[1] / "data/areas/japan-municipality-snapshot.json"
@@ -31,8 +32,11 @@ def areas_from_extended(extended: ExtendedFields) -> tuple[AlertArea, ...]:
     if "EX9_target_area_code_list" in fields:
         value = fields["EX9_target_area_code_list"]
         if fields.get("EX8_target_area_list_type") == 0:
-            return tuple(AlertArea(index, None, "prefecture_mask_bit", index)
-                         for index in range(64) if value & (1 << index))
+            # DCX-004 Figure 4.2-7: low 47 bits are prefectures; high 17
+            # bits are reserved and must never become geographic targets.
+            return tuple(AlertArea(index + 1, qzss_dcr_jma_prefecture.get(index + 1),
+                                   "prefecture_code", {"mask_bit": index})
+                         for index in range(47) if value & (1 << index))
         codes = ((value >> 48) & 0xFFFF, (value >> 32) & 0xFFFF,
                  (value >> 16) & 0xFFFF, value & 0xFFFF)
         return tuple(

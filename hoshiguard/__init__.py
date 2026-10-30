@@ -6,4 +6,4 @@ _implementation = Path(__file__).resolve().parent.parent / "python" / "hoshiguar
 if str(_implementation) not in __path__:
     __path__.append(str(_implementation))
 
-__version__ = "0.2.7"
+__version__ = "0.3.0"

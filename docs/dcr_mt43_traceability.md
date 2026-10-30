@@ -32,3 +32,7 @@ Codes 7 and 13 are unused; raw codes remain visible. Per-payload offsets,
 scales, units and special values are implemented in the named decoder plus its
 definition file and traced to DCR-016 section 4.1.2 category tables. The older
 DCR-013 application note is excluded from offset decisions.
+
+DCR-017 preserves these bit layouts and adds tsunami no-data sentinels/height
+code plus flood table updates; see [017 audit](dcr017_audit.md). Public projection
+nulls the assumptive De/Ma=10 markers while retaining their raw values.

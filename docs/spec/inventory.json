@@ -1,6 +1,6 @@
 {
   "schema": "hoshiguard.spec-inventory.v1",
-  "audited_at": "2026-07-15",
+  "audited_at": "2026-10-30",
   "specs": [
     {
       "name": "IS-QZSS-L1S",
@@ -9,7 +9,11 @@
       "sha256": "26acfb4b803990a1f72beab6e6a3c0fda161cff2255aa3277738206724877b73",
       "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-l1s-009.pdf",
       "tier": 1,
-      "used_by": ["STM32 L1S", "python/hoshiguard/l1s.py", "routing"],
+      "used_by": [
+        "STM32 L1S",
+        "python/hoshiguard/l1s.py",
+        "routing"
+      ],
       "complete": true,
       "repository_copy": false
     },
@@ -20,7 +24,22 @@
       "sha256": "07cc143ea7d03b486392b16f348ca291adf758f9d81ae4c457f3e89a165fa516",
       "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-dcr-016.pdf",
       "tier": 1,
-      "used_by": ["python/hoshiguard/dcr"],
+      "used_by": [
+        "python/hoshiguard/dcr"
+      ],
+      "complete": true,
+      "repository_copy": false
+    },
+    {
+      "name": "IS-QZSS-DCR",
+      "version": "017",
+      "published": "2026-09-02",
+      "sha256": "24bc3a2f62b22f0b46d9e01a2ed1cb61bc6c77b257567fc8588baf390a2ab84c",
+      "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-dcr-017.pdf",
+      "tier": 1,
+      "used_by": [
+        "DCR-017 additive time/code fixes; docs/dcr017_audit.md"
+      ],
       "complete": true,
       "repository_copy": false
     },
@@ -31,7 +50,9 @@
       "sha256": "038dd2c130998514ae4001545cc9ce99905a8a94fe6b3a9ae1ee1018605f299e",
       "source": "https://qzss.go.jp/en/technical/download/pdf/ps-is-qzss/is-qzss-dcx-004.pdf",
       "tier": 1,
-      "used_by": ["python/hoshiguard/dcx"],
+      "used_by": [
+        "python/hoshiguard/dcx"
+      ],
       "complete": true,
       "repository_copy": false
     },
@@ -42,7 +63,10 @@
       "sha256": "609f61c2c6f881acdce1f23df0f01bd33c4a164205da4f52237571ff000eb04c",
       "source": "https://www.gsc-europa.eu/sites/default/files/sites/all/files/EWSS-CAMF_in_force.pdf",
       "tier": 1,
-      "used_by": ["python/hoshiguard/dcx/camf.py", "DCX code tables"],
+      "used_by": [
+        "python/hoshiguard/dcx/camf.py",
+        "DCX code tables"
+      ],
       "complete": true,
       "repository_copy": false
     },
@@ -54,7 +78,9 @@
       "source": "user supplied",
       "local_path": "users-manual_ver2.pdf",
       "tier": 2,
-      "used_by": ["business-context-only"],
+      "used_by": [
+        "business-context-only"
+      ],
       "complete": true,
       "repository_copy": true
     },
@@ -66,7 +92,9 @@
       "source": "user supplied",
       "local_path": "dcx_test_data_details_202607.pdf",
       "tier": 2,
-      "used_by": ["test scenario manifest only"],
+      "used_by": [
+        "test scenario manifest only"
+      ],
       "complete": true,
       "repository_copy": true
     },
@@ -78,7 +106,9 @@
       "source": "user supplied official scenario oracle",
       "local_path": "details_202607.pdf",
       "tier": 2,
-      "used_by": ["DCR scenario manifest and validator only"],
+      "used_by": [
+        "DCR scenario manifest and validator only"
+      ],
       "complete": true,
       "repository_copy": true
     },
@@ -89,7 +119,9 @@
       "sha256": null,
       "source": "referenced by DCX-004",
       "tier": 1,
-      "used_by": ["DCX municipality display names"],
+      "used_by": [
+        "DCX municipality display names"
+      ],
       "complete": false,
       "blocked_by_missing_spec": true,
       "note": "raw 16-bit codes are decoded; the vendored lookup snapshot is not claimed as the current authoritative JIS dataset"
@@ -101,7 +133,9 @@
       "sha256": null,
       "source": "DCX-004 section 4.1.2.2",
       "tier": 1,
-      "used_by": ["outside-Japan EX11 semantics"],
+      "used_by": [
+        "outside-Japan EX11 semantics"
+      ],
       "complete": false,
       "blocked_by_missing_spec": true,
       "note": "HoshiGuard retains all 68 raw bits"

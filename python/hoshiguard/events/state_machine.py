@@ -1,10 +1,9 @@
 from __future__ import annotations
 
 from collections import OrderedDict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from ..models import UnifiedAlert
-from .dedup import BoundedFingerprintSet
 
 
 @dataclass(frozen=True)
@@ -26,9 +25,9 @@ class _Aggregate:
     repeat_count: int
     first_seen_us: int
     last_seen_us: int
-    satellites: set[int] = field(default_factory=set)
-    pabs: set[int] = field(default_factory=set)
-    frames: set[str] = field(default_factory=set)
+    satellites: set[int] | None = None
+    pabs: set[int] | None = None
+    frames: set[str] | None = None
 
 
 @dataclass(frozen=True)
@@ -52,11 +51,14 @@ class EventProcessor:
 
     def __init__(self, capacity: int = 65_536,
                  ttl_us: int = 7 * 86_400_000_000,
-                 maximum_frame_fingerprints: int = 64):
+                 maximum_frame_fingerprints: int = 64,
+                 track_evidence: bool = True):
+        if capacity < 1 or maximum_frame_fingerprints < 0:
+            raise ValueError("invalid event cache limits")
         self.capacity = capacity
         self.ttl_us = ttl_us
         self.maximum_frame_fingerprints = maximum_frame_fingerprints
-        self.frames = BoundedFingerprintSet(capacity * 2)
+        self.track_evidence = track_evidence
         self.semantic: OrderedDict[str, _Aggregate] = OrderedDict()
         self.events: OrderedDict[tuple[str, str], tuple[str, int]] = OrderedDict()
         self.evictions = 0
@@ -91,23 +93,27 @@ class EventProcessor:
                 record_type: str = "semantic_observation") -> EventResult:
         return EventResult(disposition, alert, item.repeat_count, record_type,
                            item.first_seen_us, item.last_seen_us,
-                           tuple(sorted(item.satellites)),
-                           tuple(sorted(item.pabs)), len(item.frames))
+                           tuple(sorted(item.satellites or ())),
+                           tuple(sorted(item.pabs or ())), len(item.frames or ()))
 
-    def observe(self, alert: UnifiedAlert) -> EventResult:
-        now_us = alert.receipt.timestamp_us
+    def observe(self, alert: UnifiedAlert, *, now_us: int | None = None) -> EventResult:
+        # Runtime supplies a host monotonic clock, independent of MCU epochs
+        # and wall-clock adjustments. Offline diagnostics may use receipt time.
+        now_us = alert.receipt.timestamp_us if now_us is None else now_us
         self._expire(now_us)
-        self.frames.observe(alert.identity.frame_fingerprint)
         fingerprint = alert.identity.semantic_fingerprint
         item = self.semantic.pop(fingerprint, None)
         if item is None:
             item = _Aggregate(alert, 0, now_us, now_us)
+            if self.track_evidence:
+                item.satellites, item.pabs, item.frames = set(), set(), set()
         item.repeat_count += 1
         item.last_seen_us = now_us
-        item.satellites.add(alert.receipt.sv_id)
-        item.pabs.add(alert.receipt.pab)
-        if len(item.frames) < self.maximum_frame_fingerprints:
-            item.frames.add(alert.identity.frame_fingerprint)
+        if self.track_evidence:
+            item.satellites.add(alert.receipt.sv_id)
+            item.pabs.add(alert.receipt.pab)
+            if len(item.frames) < self.maximum_frame_fingerprints:
+                item.frames.add(alert.identity.frame_fingerprint)
         self.semantic[fingerprint] = item
         while len(self.semantic) > self.capacity:
             self.semantic.popitem(last=False)
@@ -120,9 +126,13 @@ class EventProcessor:
         # observations, not disaster-event lifecycle transitions. They still
         # participate in dedup and raw archival, but must never be labelled
         # "issued" merely because this is their first occurrence.
-        if not alert.alert:
+        if not alert.alert or not alert.validity.semantics:
             return self._result("observed", alert, item)
-        key = (alert.status, alert.identity.event_key)
+        # A limited correlation hint is not evidence of an event lifecycle.
+        # Retain independent reports instead of merging simultaneous disasters.
+        key = (alert.status, alert.identity.event_key
+               if alert.identity.confidence == "spec_scoped"
+               else alert.identity.semantic_fingerprint)
         previous_entry = self.events.pop(key, None)
         previous = previous_entry[0] if previous_entry else None
         if alert.action == "cancel":
@@ -156,6 +166,6 @@ class EventProcessor:
                 item.alert.identity.semantic_fingerprint_version,
                 item.alert.identity.event_key, item.repeat_count,
                 item.first_seen_us, item.last_seen_us,
-                tuple(sorted(item.satellites)), tuple(sorted(item.pabs)),
-                len(item.frames), token, item.alert.alert))
+                tuple(sorted(item.satellites or ())), tuple(sorted(item.pabs or ())),
+                len(item.frames or ()), token, item.alert.alert))
         return tuple(result)

@@ -1,0 +1,326 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:hoshiguard:public-alert:v1",
+  "title": "PublicAlert v1",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema",
+    "id",
+    "source",
+    "service",
+    "category",
+    "status",
+    "action",
+    "identity",
+    "times",
+    "areas",
+    "severity",
+    "payload",
+    "validity",
+    "is_real_disaster",
+    "provenance"
+  ],
+  "properties": {
+    "schema": {
+      "const": "hoshiguard.public-alert.v1"
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^sf2-[0-9a-f]{64}$"
+    },
+    "service": {
+      "enum": [
+        "DCR",
+        "DCX"
+      ]
+    },
+    "status": {
+      "enum": [
+        "actual",
+        "test",
+        "unknown"
+      ]
+    },
+    "action": {
+      "enum": [
+        "issue",
+        "update",
+        "cancel",
+        "clear",
+        "unknown"
+      ]
+    },
+    "is_real_disaster": {
+      "type": "boolean"
+    },
+    "source": {
+      "type": "object",
+      "required": [
+        "name",
+        "type",
+        "provider"
+      ],
+      "properties": {
+        "name": {
+          "const": "QZSS L1S"
+        },
+        "type": {
+          "const": "satellite_broadcast"
+        },
+        "provider": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      }
+    },
+    "category": {
+      "type": "object",
+      "required": [
+        "code",
+        "token",
+        "known",
+        "reserved"
+      ],
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "token": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "known": {
+          "type": "boolean"
+        },
+        "reserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "scope",
+        "event_id",
+        "semantic_fingerprint",
+        "semantic_fingerprint_version",
+        "correlation_hint",
+        "correlation_confidence"
+      ],
+      "properties": {
+        "scope": {
+          "const": "semantic_message_content"
+        },
+        "event_id": {
+          "type": "null"
+        },
+        "semantic_fingerprint": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "semantic_fingerprint_version": {
+          "const": 2
+        },
+        "correlation_hint": {
+          "type": "string"
+        },
+        "correlation_confidence": {
+          "type": "string"
+        }
+      }
+    },
+    "times": {
+      "type": "object",
+      "required": [
+        "issued",
+        "received",
+        "onset",
+        "expires",
+        "basis"
+      ],
+      "properties": {
+        "issued": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "onset": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "expires": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "received": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "basis": {
+          "type": "string"
+        }
+      }
+    },
+    "areas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "code",
+          "name",
+          "kind"
+        ],
+        "properties": {
+          "code": {
+            "type": [
+              "integer",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "kind": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "severity": {
+      "type": [
+        "object",
+        "null"
+      ]
+    },
+    "payload": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string"
+        },
+        "fields": {
+          "type": "object"
+        },
+        "camf": {
+          "type": "object"
+        },
+        "extended": {
+          "type": "object"
+        },
+        "guidance": {
+          "type": "object"
+        },
+        "limitations": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "validity": {
+      "type": "object",
+      "required": [
+        "transport_verified",
+        "semantics",
+        "complete",
+        "category_known",
+        "category_reserved",
+        "unknown_fields"
+      ],
+      "properties": {
+        "transport_verified": {
+          "type": "boolean"
+        },
+        "semantics": {
+          "type": "boolean"
+        },
+        "complete": {
+          "type": "boolean"
+        },
+        "category_known": {
+          "type": "boolean"
+        },
+        "category_reserved": {
+          "type": "boolean"
+        },
+        "unknown_fields": {
+          "type": "array"
+        }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "spec",
+        "input",
+        "format"
+      ],
+      "properties": {
+        "spec": {
+          "type": "string"
+        },
+        "input": {
+          "enum": [
+            "live",
+            "replay"
+          ]
+        },
+        "format": {
+          "type": "string"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "service": {
+            "const": "DCR"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "payload": {
+            "required": [
+              "fields"
+            ]
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "payload": {
+            "required": [
+              "camf",
+              "extended",
+              "guidance",
+              "limitations"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -162,7 +162,9 @@ class BridgeProtocolTests(unittest.TestCase):
             self.assertEqual(reader.corrupt_records, 1)
 
     def test_serial_disconnect_discards_partial_and_starts_new_hello_epoch(self):
-        hello = encode_frame(FrameType.HELLO, 0, 1, bytes(64))
+        hello_payload = bytearray(64)
+        hello_payload[0], hello_payload[6], hello_payload[7] = 1, 1, 1
+        hello = encode_frame(FrameType.HELLO, 0, 1, bytes(hello_payload))
 
         class SerialException(Exception):
             pass

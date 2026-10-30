@@ -8,7 +8,7 @@ separates implementation from evidence:
 - `official_scenario_defined` / `official_scenario_verified`
 - `real_broadcast_verified`
 
-Decoder presence does not imply real-broadcast verification. DCR-016 has
+Decoder presence does not imply real-broadcast verification. DCR-017 retains DCR-016 wire layouts and has
 implementations for active categories 1,2,3,4,5,6,8,9,10,11,12,14. The July
 2026 official scenario defines categories 1,2,3,4,5,8,9,10,11, but no matching
 official broadcast capture is yet present, so those entries are not promoted
@@ -33,3 +33,8 @@ sequence gaps, and zero Bridge/L1S/Critical drops. This is inherited path
 evidence for unchanged v0.2.6/v0.2.7 code, not a 24-hour certification of those
 firmware binaries. The soak actually observed DCR14 Marine, DCX Null and 69
 non-Null `l_alert_ex1` DCX frames; no unobserved category is promoted.
+
+The 017 additive time/code changes are synthetically verified only; see
+[dcr017_audit.md](dcr017_audit.md). No new real-broadcast evidence level is
+assigned by the HTTP/WS refactor. EX9 prefecture targets now exclude its
+17 reserved bits; Japan non-Null Vn other than 1 is not fully supported.

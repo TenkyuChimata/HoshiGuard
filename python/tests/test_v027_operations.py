@@ -74,7 +74,8 @@ class V027OperationalTests(unittest.TestCase):
                 writer.write(event_result())
             value = json.loads(path.read_text().splitlines()[1])
         self.assertEqual(value["stream_mode"], "events_only")
-        self.assertEqual(value["producer_version"], "0.2.7")
+        from hoshiguard import __version__
+        self.assertEqual(value["producer_version"], __version__)
         self.assertEqual(value["bridge_protocol_version"], "1.0")
         self.assertEqual(value["session_id"], "fixed")
 
@@ -249,7 +250,7 @@ class V027OperationalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "all.ndjson"
             report = Path(directory) / "report.json"
-            subprocess.run([sys.executable, "-m", "hoshiguard", "--bridge-file",
+            subprocess.run([sys.executable, "-m", "hoshiguard", "diagnose", "--bridge-file",
                             str(fixture), "--all-observations", "--ndjson",
                             str(output), "--json-report", str(report)],
                            cwd=ROOT, check=True, capture_output=True)
@@ -262,7 +263,7 @@ class V027OperationalTests(unittest.TestCase):
                        for record in RawArchiveReader(str(fixture)))
         with tempfile.TemporaryDirectory() as directory:
             output = Path(directory) / "all.ndjson"
-            subprocess.run([sys.executable, "-m", "hoshiguard", "--bridge-file",
+            subprocess.run([sys.executable, "-m", "hoshiguard", "diagnose", "--bridge-file",
                             str(fixture), "--all-observations", "--ndjson", str(output)],
                            cwd=ROOT, check=True, capture_output=True)
             records = [json.loads(line) for line in output.read_text().splitlines()]

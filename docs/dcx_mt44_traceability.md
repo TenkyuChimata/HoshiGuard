@@ -43,3 +43,7 @@ tree and is wrapped by `dcx/decoder.py`; Human and NDJSON consume only
 `UnifiedAlert`. Real fixture coverage locks PAB/MT/CRC and observed fields.
 The July 2026 scenario PDF supplies coverage expectations, never these offsets.
 
+
+0.3.0 correction: EX9 prefecture mode uses only its low 47 bits (DCX-004
+Figure 4.2-7/Table 4.2-25); the high 17 bits remain raw/reserved, never targets.
+Japan non-Null Vn=1 is the supported version; outside-Japan Vn is country-specific.

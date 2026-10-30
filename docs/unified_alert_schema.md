@@ -25,4 +25,8 @@ v0.2.7 adds compatible top-level provenance fields to every business record:
 `bridge_protocol_version`, and `session_id`. A file normally also contains
 `hoshiguard.session.v1` `session_start` and `session_end` records. Consumers of
 `hoshiguard.alert.v1` should ignore unfamiliar record types; deployments that
-require the old one-alert-per-line-only form can use `--no-session-records`.
+require the old one-alert-per-line-only form can use `hoshiguard diagnose --no-session-records` with the relevant input.
+
+The production HTTP/WS projection is `hoshiguard.public-alert.v1`; see [API](api.md).
+Since 0.3.0, limited event keys no longer infer updates or merge independent reports.
+Detailed observation/session output is only enabled under `hoshiguard diagnose`.

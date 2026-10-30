@@ -11,13 +11,14 @@ from typing import TextIO
 import uuid
 
 from ..events.state_machine import EventResult, RepeatSummary
+from .. import __version__
 from ..models import json_safe
 
 
 class NdjsonWriter:
     def __init__(self, destination: str, include_raw: bool = True,
                  flush_every: int = 1, *, stream_mode: str | None = None,
-                 producer_version: str = "0.2.7",
+                 producer_version: str = __version__,
                  bridge_protocol_version: str = "1.0",
                  session_id: str | None = None, source: str | None = None,
                  session_records: bool = False, rotate_bytes: int = 0,

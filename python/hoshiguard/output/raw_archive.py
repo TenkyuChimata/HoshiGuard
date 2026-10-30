@@ -66,6 +66,11 @@ class RawArchiveWriter:
 
     def _open(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
+        if self.path.exists() and self.path.stat().st_size:
+            with self.path.open("rb") as source:
+                header = source.read(FILE_HEADER.size)
+            if header != FILE_HEADER.pack(FILE_MAGIC, 1, 0, 0):
+                raise ValueError("refusing to append to an unsupported raw archive")
         self.stream = self.path.open("ab+")
         self._digest = sha256()
         if self.stream.tell() == 0:

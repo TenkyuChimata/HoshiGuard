@@ -1,7 +1,6 @@
 [Unit]
-Description=HoshiGuard QZSS L1S production receiver
-After=dev-hoshiguard.device local-fs.target
-Wants=dev-hoshiguard.device
+Description=HoshiGuard QZSS disaster JSON API
+After=local-fs.target network.target
 StartLimitIntervalSec=120
 StartLimitBurst=5
 
@@ -12,11 +11,11 @@ Group=hoshiguard
 SupplementaryGroups=dialout
 WorkingDirectory=/opt/hoshiguard
 EnvironmentFile=/etc/hoshiguard/hoshiguard.env
-Environment=PYTHONPATH=/opt/hoshiguard/python
-ExecStart=/usr/bin/python3 -m hoshiguard --port ${HOSHIGUARD_PORT} --baud ${HOSHIGUARD_BAUD} --semantic-observations --repeat-summary --output-directory ${HOSHIGUARD_OUTPUT_DIR} --session-prefix ${HOSHIGUARD_SESSION_PREFIX} --rotate-interval 24h --fsync-interval 30s --health-file /run/hoshiguard/health.json --pid-file /run/hoshiguard/hoshiguard.pid
-Restart=always
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/hoshiguard/.venv/bin/hoshiguard --port ${HOSHIGUARD_PORT} --baud ${HOSHIGUARD_BAUD} --api --api-host ${HOSHIGUARD_API_HOST} --api-port ${HOSHIGUARD_API_PORT}
+Restart=on-failure
 RestartSec=3
-TimeoutStopSec=30
+TimeoutStopSec=15
 KillSignal=SIGTERM
 UMask=0027
 NoNewPrivileges=true
@@ -26,9 +25,7 @@ ProtectHome=true
 ProtectKernelTunables=true
 ProtectKernelModules=true
 ProtectControlGroups=true
-ReadWritePaths=/var/lib/hoshiguard /run/hoshiguard
-RuntimeDirectory=hoshiguard
-RuntimeDirectoryMode=0750
+ReadWritePaths=/var/lib/hoshiguard
 StateDirectory=hoshiguard
 StateDirectoryMode=0750
 StandardOutput=journal

@@ -1,0 +1,187 @@
+{
+  "schema": "hoshiguard.public-alert.v1",
+  "id": "sf2-be6625bf9e0cc48703980824cc42a7b3d28b815f8e7070026aeb0aa2b7fc1e76",
+  "source": {
+    "name": "QZSS L1S",
+    "type": "satellite_broadcast",
+    "provider": {
+      "name": "Japan Meteorological Agency",
+      "code": null
+    }
+  },
+  "service": "DCR",
+  "category": {
+    "code": 14,
+    "token": "MARINE",
+    "known": true,
+    "reserved": false,
+    "official_ja": "海上",
+    "official_en": "Marine",
+    "chinese": "海上",
+    "translation_source": "hoshiguard"
+  },
+  "status": "actual",
+  "action": "issue",
+  "identity": {
+    "scope": "semantic_message_content",
+    "event_id": null,
+    "semantic_fingerprint": "be6625bf9e0cc48703980824cc42a7b3d28b815f8e7070026aeb0aa2b7fc1e76",
+    "semantic_fingerprint_version": 2,
+    "correlation_hint": "DCR:actual:14:2026-07-15T02:35:00:none",
+    "correlation_confidence": "limited"
+  },
+  "times": {
+    "issued": "2026-07-15T02:35:00+00:00",
+    "received": "2026-07-15T06:43:47.645520+00:00",
+    "onset": null,
+    "expires": null,
+    "basis": "UTC; year inferred from receipt context",
+    "issued_raw": {
+      "month": 7,
+      "day": 15,
+      "hour": 2,
+      "minute": 35
+    }
+  },
+  "areas": [
+    {
+      "code": 1000,
+      "name": "日本海北部及びオホーツク海南部",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 1100,
+      "name": "北海道南方及び東方海上",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 2000,
+      "name": "三陸沖",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 3000,
+      "name": "関東海域",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 3100,
+      "name": "日本海中部",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 3210,
+      "name": "東海海域東部",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 3220,
+      "name": "東海海域西部",
+      "kind": "marine_forecast_regions"
+    },
+    {
+      "code": 4020,
+      "name": "四国沖北部",
+      "kind": "marine_forecast_regions"
+    }
+  ],
+  "severity": {
+    "marine_warning_codes": {
+      "code": [
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11
+      ],
+      "name": [
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報"
+      ]
+    }
+  },
+  "payload": {
+    "type": "marine",
+    "fields": {
+      "disaster_category": "海上",
+      "disaster_category_en": "Marine",
+      "disaster_category_no": 14,
+      "information_type": "発表",
+      "information_type_en": "Issue",
+      "information_type_no": 0,
+      "marine_forecast_regions": [
+        "日本海北部及びオホーツク海南部",
+        "北海道南方及び東方海上",
+        "三陸沖",
+        "関東海域",
+        "日本海中部",
+        "東海海域東部",
+        "東海海域西部",
+        "四国沖北部"
+      ],
+      "marine_forecast_regions_raw": [
+        1000,
+        1100,
+        2000,
+        3000,
+        3100,
+        3210,
+        3220,
+        4020
+      ],
+      "marine_warning_codes": [
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報",
+        "海上濃霧警報"
+      ],
+      "marine_warning_codes_raw": [
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11,
+        11
+      ],
+      "report_classification": "通常",
+      "report_classification_en": "Regular",
+      "report_classification_no": 3,
+      "report_time": "2026-07-15T02:35:00+00:00",
+      "report_time_raw": {
+        "month": 7,
+        "day": 15,
+        "hour": 2,
+        "minute": 35
+      }
+    }
+  },
+  "validity": {
+    "transport_verified": true,
+    "semantics": true,
+    "complete": true,
+    "category_known": true,
+    "category_reserved": false,
+    "unknown_fields": []
+  },
+  "is_real_disaster": true,
+  "provenance": {
+    "spec": "IS-QZSS-DCR-017",
+    "input": "replay",
+    "format": "QZSS DCR/DCX; not original JMA XML"
+  }
+}

@@ -21,7 +21,9 @@
     "time_quality": "locked_utc_limited"
   },
   "dcr": {
-    "spec": "IS-QZSS-DCR-016",
+    "spec": "IS-QZSS-DCR-017",
+    "previous_wire_profile": "IS-QZSS-DCR-016",
+    "additions_017": {"verification": ["implemented", "synthetic_verified"], "real_broadcast_verified": false, "audit": "dcr017_audit.md"},
     "categories": {
       "1": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined"]},
       "2": {"implementation": "complete", "verification": ["implemented", "synthetic_verified", "official_scenario_defined", "real_broadcast_verified"]},

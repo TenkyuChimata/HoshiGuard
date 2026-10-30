@@ -1,6 +1,56 @@
 """DCR-016 category metadata; detailed tables live in the attributed vendor tree."""
 
-from ..models import AlertCode
+from ..models import AlertCode, UnknownField
+from .._vendor.azarashi.qzss_dcr_lib import definition
+
+_CODE_FIELDS = {
+    "eew_forecast_regions": "eew_forecast_region",
+    "prefectures": "prefecture",
+    "seismic_intensities": "seismic_intensity",
+    "seismic_epicenter": "epicenter_and_hypocenter",
+    "tsunami_forecast_regions": "tsunami_forecast_region",
+    "tsunami_warning_code": "tsunami_warning_code",
+    "tsunami_heights": "tsunami_height",
+    "coastal_regions": "coastal_region_en",
+    "volcanic_warning_code": "volcanic_warning_code",
+    "volcano_name": "volcano_name",
+    "local_governments": "local_government",
+    "weather_forecast_regions": "weather_forecast_region",
+    "weather_warning_state": "weather_warning_state",
+    "weather_related_disaster_sub_categories": "weather_related_disaster_sub_category",
+    "flood_forecast_regions": "flood_forecast_region",
+    "flood_warning_levels": "flood_warning_level",
+    "marine_forecast_regions": "marine_forecast_region",
+    "marine_warning_codes": "marine_warning_code",
+    "notifications_on_disaster_prevention": "notification_on_disaster_prevention",
+    "information_serial_code": "information_serial_code",
+    "ash_fall_warning_codes": "ash_fall_warning_code",
+    "reference_time_type": "typhoon_reference_time_type",
+    "typhoon_scale_category": "typhoon_scale_category",
+    "typhoon_intensity_category": "typhoon_intensity_category",
+    "tsunamigenic_potential": "tsunamigenic_potential_en",
+    "seismic_intensity_lower_limit": "seismic_intensity_lower_limit",
+    "seismic_intensity_upper_limit": "seismic_intensity_upper_limit",
+    "long_period_ground_motion_lower_limit": "long_period_ground_motion_lower_limit",
+    "long_period_ground_motion_upper_limit": "long_period_ground_motion_upper_limit",
+}
+
+
+def unknown_codes(fields: dict) -> tuple[UnknownField, ...]:
+    result = []
+    for field, table_name in _CODE_FIELDS.items():
+        raw = fields.get(field + "_raw")
+        if raw is None:
+            continue
+        if field == "tsunami_heights" and fields.get("disaster_category_no") == 6:
+            table_name = "northwest_pacific_tsunami_height_en"
+        table = getattr(definition, "qzss_dcr_jma_" + table_name)
+        for value in raw if isinstance(raw, (tuple, list)) else (raw,):
+            reason = ("undefined_code" if value not in table else
+                      "reserved_code" if str(table[value]).lower() == "reserved" else None)
+            if reason:
+                result.append(UnknownField(field, value, reason=reason))
+    return tuple(result)
 
 _CATEGORIES = {
     1: ("EARTHQUAKE_EARLY_WARNING", "緊急地震速報", "Earthquake Early Warning", "紧急地震速报"),

@@ -153,17 +153,18 @@ class QzssDcrDecoderJmaCommon(QzssDcrDecoderBase):
 
     def extract_expected_tsunami_arrival_time(self, slider):
         ta_h = self.extract_field(slider + 1, 5)
-        if ta_h == 31:
+        ta_m = self.extract_field(slider + 6, 6)
+        # DCR-017 Table 4.1.2-21: absent data is distinct from arrival.
+        if self.extract_field(slider, 1) == 0 and ta_h == 30 and ta_m == 62:
+            return None
+        if ta_h == 31 and ta_m == 63:
             return None
         elif ta_h > 23:
             raise QzssDcrDecoderException(
                 f'Invalid JMA Expected Tsunami Arrivale Time: {ta_h} as hour',
                 self)
 
-        ta_m = self.extract_field(slider + 6, 6)
-        if ta_m == 63:
-            return None
-        elif ta_m > 59:
+        if ta_m > 59:
             raise QzssDcrDecoderException(
                 f'Invalid JMA Expected Tsunami Arrivale Time: {ta_m} as minute',
                 self)
