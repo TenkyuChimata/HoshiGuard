@@ -26,6 +26,7 @@ sanitizer スクリプトは PlatformIO が取得した Unity を使います。
 | 場所 | 対象 |
 |---|---|
 | `test/test_{transport,gnss,time,logging,bridge}.cpp` | UBX/L1S/CRC、GNSS 設定・復旧、PPS/TIM-TP、書式・キュー、Bridge 1.0 |
+| `test/test_oled.cpp` | I2C の各送信段階・総期限、SSD1306 の画面更新・障害降格、状態の鮮度・文字境界、実 UBX と Bridge の併用。ハードウェア試験ではない |
 | `python/tests/test_{transport,decoders,events,api,operations}.py` | ホスト検証、DCR-017/DCX-004、意味識別・状態、HTTP/WS・再起動、現行 diagnose |
 | `tools/tests/test_{capture,sessions,specification}.py` | 捕捉・秘匿化・生成器、実証跡・合成 STATUS 境界、仕様・公式期待値 |
 | `test/test_support.h` / `python/tests/support.py` | 共通入力の生成・読み込み。独立したテスト入口は持たない |

@@ -19,6 +19,10 @@
 #include "tim_tp.h"
 #include "ubx_dispatcher.h"
 #include "ubx_parser.h"
+#if HOSHIGUARD_OLED
+#include "oled_stm32.h"
+#include "status_display.h"
+#endif
 
 // STM32duino HardwareSerial のコンストラクター引数は (RX pin, TX pin)。
 // この基板では Serial2 が PA3/PA2 に生成され、USART1 は明示的に作成する。
@@ -40,6 +44,41 @@ PpsSnapshot ppsState = {};
 GnssUtcTime utc = {};
 bool selfTestPrinted = false;
 bool startUtcPrinted = false;
+#if HOSHIGUARD_OLED
+oled::Ssd1306 oledScreen(stm32OledBus());
+oled::StatusDisplay oledStatus;
+
+void updateOled() {
+  const uint32_t nowMs = millis();
+  if (oledStatus.due(nowMs)) {
+    oled::StatusInput input = {};
+    input.gnss = oled::GnssState::Initializing;
+    if (gnss.initState() == GnssInitState::Ready) input.gnss = oled::GnssState::Ready;
+    else if (gnss.initState() == GnssInitState::Degraded) input.gnss = oled::GnssState::Degraded;
+    else if (gnss.initState() == GnssInitState::Failed) input.gnss = oled::GnssState::Failed;
+    // SFRBX 未観測は通常の衛星待ちと区別できないため、受信故障とは表示しない。
+    input.initError = gnss.lastError() == GNSS_ERR_NO_SFRBX ? 0U :
+                         static_cast<uint8_t>(gnss.lastError());
+    input.timeQuality = timeSync.quality();
+    input.ppsAbnormal = ppsState.recentBad != 0U;
+    input.ppsStable = ppsState.consecutiveGood >= 3U;
+    input.ubxErrors = ubx.stats().checksumErrors;
+    const SatelliteFrameStats &satellites = dispatcher.stats();
+    input.l1sErrors = satellites.invalidPab + satellites.invalidCrc;
+#if BRIDGE_BINARY_MODE
+    input.bridgeBinary = true;
+    input.bridgeSent = bridgeTransport.stats().framesSent;
+    input.bridgeDropped = bridgeTransport.stats().framesDropped;
+    input.bridgeL1sDropped = bridgeTransport.stats().l1sDropped;
+#endif
+    oled::Screen screen = {};
+    oledStatus.render(nowMs, input, screen, HOSHIGUARD_VERSION);
+    oledScreen.setScreen(screen);
+  }
+  // PPS、USART2 受信、Bridge の pump 後にのみ実行する。受信待ちがあれば新規転送を延期する。
+  oledScreen.tick(nowMs, micros(), Serial2.available() == 0);
+}
+#endif
 
 #if GNSS_UART_LOOPBACK_TEST
 uint8_t loopbackExpected[12] = {};
@@ -94,6 +133,9 @@ void handleNavPvt(const UbxPacketView &packet, uint32_t receivedMicros) {
   NavPvtRecord record = {};
   if (!timeSync.observeNavPvt(packet.payload, packet.length,
                               receivedMicros, record)) return;
+#if HOSHIGUARD_OLED
+  if (record.utcValid) oledStatus.noteNav(millis());
+#endif
   utc.year = record.year;
   utc.month = record.month;
   utc.day = record.day;
@@ -171,6 +213,9 @@ void handleSfrbx(const UbxPacketView &packet, const UbxDispatchEvent &event,
 #endif
   if (!event.hasL1s) return;
   const QzssL1sFrame &frame = event.frame;
+#if HOSHIGUARD_OLED
+  oledStatus.noteL1s(millis(), frame.messageType, frame.validPab && frame.validCrc);
+#endif
 
 #if BRIDGE_BINARY_MODE || BRIDGE_TEXT_MODE
   uint8_t fullUbx[bridge::kMaximumUbxLength];
@@ -275,6 +320,9 @@ void handleSfrbx(const UbxPacketView &packet, const UbxDispatchEvent &event,
 }
 
 void handlePacket(const UbxPacketView &packet, uint32_t nowMs) {
+#if HOSHIGUARD_OLED
+  oledStatus.noteUbx(millis());
+#endif
   gnss.handlePacket(packet, nowMs);
   const uint64_t receivedUs = extendedMicros();
   rawCapture.enqueueUbx(receivedUs, packet);
@@ -289,6 +337,9 @@ void handlePacket(const UbxPacketView &packet, uint32_t nowMs) {
              packet.messageId == UBX_ID_TIM_TP) {
     UbxTimTp timing = {};
     if (parseUbxTimTp(packet.payload, packet.length, timing)) {
+#if HOSHIGUARD_OLED
+      oledStatus.noteTimTp(millis());
+#endif
       const PpsEvent *previous = timeSync.newestPps();
       const uint32_t previousSequence = previous == 0 ? 0U : previous->sequence;
       timeSync.observeTimTp(timing, static_cast<uint32_t>(receivedUs));
@@ -558,6 +609,9 @@ void setup() {
   const StartupHooks hooks = {0, emitStartupMetadata, beginStartupPps,
                               beginStartupGnss};
   (void)runStartupSequence(hooks);
+#if HOSHIGUARD_OLED
+  oledScreen.begin(millis());
+#endif
 #if BRIDGE_BINARY_MODE
   (void)bridgeTransport.enqueueHello(extendedMicros(), 0U);
 #endif
@@ -573,6 +627,9 @@ void loop() {
   if (gnss.consumeParserResetRequest()) ubx.resetStreamState();
   (void)extendedMicros();  // 32 bit の周回が起きる前に micros() を拡張する。
   if (pps.update(ppsState)) {
+#if HOSHIGUARD_OLED
+    oledStatus.notePps(millis());
+#endif
     const uint32_t generation = timeSync.timTpMatchGeneration();
     timeSync.observePps(ppsState.sequence, ppsState.edgeMicros);
     rawCapture.enqueuePps(ppsState.edgeMicros, ppsState.sequence,
@@ -652,5 +709,8 @@ void loop() {
   bridgeTransport.pump();
 #else
   DebugSerial.pump();
+#endif
+#if HOSHIGUARD_OLED
+  updateOled();
 #endif
 }

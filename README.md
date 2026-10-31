@@ -28,6 +28,8 @@ MCU のキューとホストの履歴には上限があり、データベース�
 | PA8 | MAX-M10S TIMEPULSE/PPS |
 | PA9 / USART1 TX | USB-UART RX（Bridge 出力） |
 | PA10 / USART1 RX | USB-UART TX |
+| PB6 / I2C1 SCL | SSD1306 SCL（任意） |
+| PB7 / I2C1 SDA | SSD1306 SDA（任意） |
 
 [PlatformIO](https://docs.platformio.org/en/latest/core/installation/index.html) を導入してビルドします。
 
@@ -38,6 +40,10 @@ pio run -e genericSTM32F103C8-bridge-binary -t upload
 ```
 
 既定環境は `bridge-binary` です。その他の環境と受信診断は[運用ガイド](docs/deployment.md)を参照してください。
+既定ファームウェアは SSD1306 128×64（7-bit アドレス `0x3C`、400 kHz）の状態表示を有効にします。
+画面なしでも受信と Bridge は動作します。OLED を含めないビルドは
+`pio run -e genericSTM32F103C8-bridge-binary-no-oled` です。
+配線、表示の意味、障害時の動作は[OLED の説明](docs/deployment.md#ssd1306-oled)を参照してください。
 
 ## インストールと起動
 

@@ -28,6 +28,9 @@ c++ -std=gnu++11 -Wall -Wextra -Wpedantic -Wformat=2 \
   "$ROOT/src/time_sync.cpp" \
   "$ROOT/src/ubx_dispatcher.cpp" \
   "$ROOT/src/bridge_protocol.cpp" \
+  "$ROOT/src/oled_i2c.cpp" \
+  "$ROOT/src/ssd1306.cpp" \
+  "$ROOT/src/status_display.cpp" \
   "$ROOT"/test/test_*.cpp \
   "$BUILD/unity.o" -o "$BUILD/hoshiguard-tests"
 

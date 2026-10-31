@@ -5,6 +5,7 @@ void run_gnss_tests();
 void run_time_tests();
 void run_logging_tests();
 void run_bridge_tests();
+void run_oled_tests();
 
 extern "C" void setUp() {}
 extern "C" void tearDown() {}
@@ -16,5 +17,6 @@ int main(int, char **) {
   run_time_tests();
   run_logging_tests();
   run_bridge_tests();
+  run_oled_tests();
   return UNITY_END();
 }
