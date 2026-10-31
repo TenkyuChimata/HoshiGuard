@@ -1,28 +1,20 @@
 #include <unity.h>
 
-void run_ubx_parser_tests();
-void run_qzss_l1s_tests();
-void run_v020_tests();
-void run_v021_tests();
-void run_startup_logging_tests();
-void run_v022_tests();
-void run_v023_tests();
-void run_v024_tests();
-void run_v025_tests();
+void run_transport_tests();
+void run_gnss_tests();
+void run_time_tests();
+void run_logging_tests();
+void run_bridge_tests();
 
 extern "C" void setUp() {}
 extern "C" void tearDown() {}
 
 int main(int, char **) {
   UNITY_BEGIN();
-  run_ubx_parser_tests();
-  run_qzss_l1s_tests();
-  run_v020_tests();
-  run_v021_tests();
-  run_startup_logging_tests();
-  run_v022_tests();
-  run_v023_tests();
-  run_v024_tests();
-  run_v025_tests();
+  run_transport_tests();
+  run_gnss_tests();
+  run_time_tests();
+  run_logging_tests();
+  run_bridge_tests();
   return UNITY_END();
 }

@@ -1,7 +1,8 @@
+"""現行 diagnose の出力、セッション・分割保存、ディスク方針と異常処理。"""
+from support import ROOT, MANIFEST, alert, event_result, synthetic
 from dataclasses import replace
 from hashlib import sha256
 import json
-import os
 from pathlib import Path
 import subprocess
 import sys
@@ -9,38 +10,25 @@ import tempfile
 import time
 import unittest
 from unittest.mock import patch
-
-from hoshiguard.bridge_frames import L1sFrame
-from hoshiguard.bridge_protocol import BridgeFrame, FrameType, encode_frame
+from hoshiguard.bridge_protocol import FrameType, encode_frame
 from hoshiguard.events.state_machine import EventProcessor
-from hoshiguard.l1s import verify_ubx_l1s
-from hoshiguard.operational import (DiskGuard, HealthReporter, PidFile,
-                                    atomic_json, parse_duration, parse_quantity)
+from hoshiguard.operational import (
+    DiskGuard,
+    HealthReporter,
+    PidFile,
+    atomic_json,
+    parse_duration,
+    parse_quantity,
+)
 from hoshiguard.output.ndjson import NdjsonWriter
 from hoshiguard.output.raw_archive import RawArchiveReader, RawArchiveWriter
-from hoshiguard.routing import make_alert
-
-ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = json.loads((ROOT / "test/fixtures/real/manifest.json").read_text())
-
-
-def alert():
-    item = next(x for x in MANIFEST["fixtures"]
-                if x["name"] == "qzss_l1s_mt43_pab53")
-    verified = verify_ubx_l1s(bytes.fromhex(item["ubx_hex"]))
-    claim = L1sFrame(1, verified.sfrbx.sv_id, verified.sfrbx.gnss_id,
-                    verified.sfrbx.sig_id, verified.sfrbx.num_words,
-                    verified.pab, verified.message_type, 0x0F,
-                    verified.sfrbx.packet.raw, 4, 2, "0.2.7")
-    frame = BridgeFrame(1, 0, FrameType.L1S_FRAME, 0, 1, 100, b"", 0)
-    return make_alert(frame, claim, verified)
+from contextlib import redirect_stderr
+import io
+from hoshiguard import diagnostics as cli_module
+from hoshiguard.l1s import L1sError
 
 
-def event_result():
-    return EventProcessor().observe(alert())
-
-
-class V027OperationalTests(unittest.TestCase):
+class OperationalTests(unittest.TestCase):
     def test_parse_rotate_size_suffixes(self):
         self.assertEqual(parse_quantity("1K"), 1024)
         self.assertEqual(parse_quantity("1.5MiB"), 1572864)
@@ -110,10 +98,19 @@ class V027OperationalTests(unittest.TestCase):
             hashes = sorted(Path(directory).glob("*.sha256"))
             self.assertGreater(len(files), 1)
             self.assertEqual(len(files), len(hashes))
+            business_records = []
             for item in files:
                 sidecar = item.with_suffix(item.suffix + ".sha256")
                 expected = sidecar.read_text().split()[0]
                 self.assertEqual(expected, sha256(item.read_bytes()).hexdigest())
+                values = [json.loads(line) for line in item.read_text().splitlines()]
+                business_records.extend(value for value in values
+                                        if value["record_type"] not in ("session_start", "session_end"))
+            # 名前の一意性だけでは上書きを検出できない。全出力の保存を確認する。
+            self.assertEqual(len(business_records), 4)
+            self.assertEqual({value["identity"]["semantic_fingerprint"]
+                              for value in business_records},
+                             {event_result().alert.identity.semantic_fingerprint})
 
     def test_ndjson_interval_rotation(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -126,14 +123,6 @@ class V027OperationalTests(unittest.TestCase):
             count = len(list(Path(directory).glob("*.ndjson")))
         self.assertGreaterEqual(count, 2)
 
-    def test_rotation_names_do_not_collide(self):
-        with tempfile.TemporaryDirectory() as directory:
-            path = Path(directory) / "out.ndjson"
-            with NdjsonWriter(str(path), stream_mode="all_observations",
-                              rotate_bytes=100) as writer:
-                writer.write(event_result()); writer.write(event_result())
-            names = [item.name for item in Path(directory).glob("*.ndjson")]
-        self.assertEqual(len(names), len(set(names)))
 
     def test_raw_archive_size_rotation_is_replayable(self):
         wire = encode_frame(FrameType.HEARTBEAT, 1, 2, b"\0\0\0\0")
@@ -231,9 +220,8 @@ class V027OperationalTests(unittest.TestCase):
         processor = EventProcessor(capacity=1)
         first = alert()
         processor.observe(first)
-        second = replace(first, identity=replace(
-            first.identity, semantic_fingerprint="A" * 64),
-            receipt=replace(first.receipt, timestamp_us=200))
+        second = replace(synthetic(first, number=1),
+                         receipt=replace(first.receipt, timestamp_us=200))
         processor.observe(second)
         self.assertEqual(processor.peak_semantic, 1)
         self.assertGreater(processor.capacity_evictions, 0)
@@ -279,6 +267,99 @@ class V027OperationalTests(unittest.TestCase):
             end = json.loads(path.read_text().splitlines()[-1])
         self.assertEqual(end["objects_written"], 2)
 
+
+REAL = next(item for item in MANIFEST["fixtures"] if item["name"] == "qzss_l1s_mt43_pab53")
+
+
+class CliOutputTests(unittest.TestCase):
+    def test_legacy_capture_to_human_and_ndjson(self):
+        with tempfile.TemporaryDirectory() as directory:
+            capture = Path(directory) / "capture.log"
+            output = Path(directory) / "alerts.ndjson"
+            capture.write_text(
+                f"QZSS_L1S_UBX timestamp_us=123 pps_seq=4 svId=3 "
+                f"numWords=9 pab=53 mt=43 crc=ok len=52 data={REAL['ubx_hex']}\n",
+                encoding="ascii")
+            completed = subprocess.run(
+                [sys.executable, "-m", "hoshiguard", "diagnose", "--capture-log",
+                 str(capture), "--human", "--ndjson", str(output),
+                 "--no-session-records"],
+                cwd=ROOT, text=True, capture_output=True, check=True)
+            self.assertIn("[DCR]", completed.stdout)
+            lines = output.read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(lines), 1)
+            value = json.loads(lines[0])
+            self.assertEqual(value["schema"], "hoshiguard.alert.v1")
+            self.assertEqual(value["service"], "DCR")
+
+    def test_malformed_legacy_record_does_not_crash(self):
+        with tempfile.TemporaryDirectory() as directory:
+            capture = Path(directory) / "capture.log"
+            capture.write_bytes(b"garbage\xff\nUBX_RAW timestamp_us=1 len=8 data=NOTHEX\n")
+            subprocess.run([sys.executable, "-m", "hoshiguard", "diagnose",
+                            "--capture-log", str(capture), "--human"],
+                           cwd=ROOT, check=True, capture_output=True)
+
+    def test_semantic_error_isolated_after_raw_archive_write(self):
+        fixture = ROOT / "test/fixtures/bridge_real_session/selected_records.hgraw"
+        selected = [record for record in RawArchiveReader(str(fixture))
+                    if record.frame.frame_type == FrameType.L1S_FRAME][:2]
+        self.assertEqual(len(selected), 2)
+        with tempfile.TemporaryDirectory() as directory:
+            source = Path(directory) / "source.hgraw"
+            archived = Path(directory) / "preserved.hgraw"
+            ndjson = Path(directory) / "alerts.ndjson"
+            report = Path(directory) / "report.json"
+            health = Path(directory) / "health.json"
+            with RawArchiveWriter(str(source)) as writer:
+                for record in selected:
+                    writer.write(record.wire, record.pc_receive_ns)
+
+            real_make_alert = cli_module.make_alert
+            calls = 0
+
+            def fail_first(*args, **kwargs):
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    raise L1sError("synthetic semantic failure")
+                return real_make_alert(*args, **kwargs)
+
+            stderr = io.StringIO()
+            with patch("hoshiguard.diagnostics.make_alert", side_effect=fail_first), \
+                    redirect_stderr(stderr):
+                result = cli_module.main([
+                    "--bridge-file", str(source), "--all-observations",
+                    "--raw-archive", str(archived), "--ndjson", str(ndjson),
+                    "--json-report", str(report), "--health-file", str(health)])
+
+            metrics = json.loads(report.read_text())
+            state = json.loads(health.read_text())
+            output = [json.loads(line) for line in ndjson.read_text().splitlines()]
+            preserved = list(RawArchiveReader(str(archived)))
+
+        self.assertEqual(result, 0)
+        self.assertEqual(len(preserved), 2)
+        self.assertEqual(metrics["verified_frame_observations"], 2)
+        self.assertEqual(metrics["semantic_decode_errors"], 1)
+        self.assertEqual(metrics["all_observations_emitted"], 1)
+        self.assertEqual(metrics["input_to_output_accounting"]["unaccounted"], 0)
+        self.assertEqual(sum(item.get("record_type") == "frame_observation"
+                             for item in output), 1)
+        self.assertIn("semantic_decode_error sequence=", stderr.getvalue())
+        self.assertIn("service=", stderr.getvalue())
+        self.assertEqual(state["overall_health"], "degraded")
+        self.assertEqual(state["semantic_decode_errors"], 1)
+        self.assertEqual(state["last_semantic_decode_error"]["exception"],
+                         "L1sError")
+
+    def test_unknown_programming_error_is_not_hidden(self):
+        fixture = ROOT / "test/fixtures/bridge_real_session/selected_records.hgraw"
+        with patch("hoshiguard.diagnostics.make_alert",
+                   side_effect=RuntimeError("programming defect")):
+            with self.assertRaisesRegex(RuntimeError, "programming defect"):
+                cli_module.main(["--bridge-file", str(fixture),
+                                 "--all-observations", "--human"])
 
 if __name__ == "__main__":
     unittest.main()

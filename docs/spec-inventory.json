@@ -79,7 +79,7 @@
       "source": "https://qzss.go.jp/technical/dod/dc-report/dcx-test-data-distribution.html",
       "tier": 2,
       "used_by": [
-        "test/fixtures/dcx_202607/scenario_manifest.json"
+        "test/fixtures/official/dcx-scenario.json"
       ],
       "complete": true,
       "repository_copy": false,
@@ -93,7 +93,7 @@
       "source": "https://qzss.go.jp/technical/dod/dc-report/test-data-distribution.html",
       "tier": 2,
       "used_by": [
-        "test/fixtures/dcr_202607/scenario_manifest.json"
+        "test/fixtures/official/dcr-scenario.json"
       ],
       "complete": true,
       "repository_copy": false,

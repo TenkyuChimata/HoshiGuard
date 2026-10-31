@@ -16,7 +16,7 @@ import replay_ubx
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 REAL_DIR = ROOT / "test" / "fixtures" / "real"
-REGISTRY = ROOT / "test" / "fixtures" / "real_fixture_registry.h"
+PACKETS = ROOT / "test" / "fixtures" / "packets.h"
 ARRIVALS = REAL_DIR / "real_capture_arrivals.h"
 
 
@@ -38,16 +38,26 @@ def _rechecksum(packet: bytearray) -> bytes:
     return bytes(packet)
 
 
-def _array(name: str, packet: bytes) -> str:
-    symbol = "k" + "".join(part.capitalize() for part in name.split("_"))
-    values = ", ".join(f"0x{value:02X}" for value in packet)
+def packet_header(items) -> str:
+    """実 packet と合成負例を単一ヘッダーにまとめ、元の byte 列を保持する。"""
+    arrays, rows = [], []
+    for name, packet, accept, l1s, pab, mt, words in items:
+        symbol = _symbol(name)
+        values = ", ".join(f"0x{value:02X}" for value in packet)
+        arrays.append(f"static const uint8_t {symbol}[] = {{{values}}};\n")
+        rows.append(f'    {{"{name}", hoshiguard_fixture::{symbol}, '
+                    f'sizeof(hoshiguard_fixture::{symbol}), '
+                    f'{str(accept).lower()}, {str(l1s).lower()}, {pab}U, {mt}U, {words}U}},\n')
     return (
         "#pragma once\n\n#include <stddef.h>\n#include <stdint.h>\n\n"
-        "namespace hoshiguard_fixture {\n"
-        f"static const uint8_t {symbol}[] = {{{values}}};\n"
-        f"static const size_t {symbol}Length = sizeof({symbol});\n"
-        "}  // namespace hoshiguard_fixture\n"
-    )
+        "// 出所・実受信と合成負例の区別は real/manifest.json を参照。\n"
+        "namespace hoshiguard_fixture {\n" + "".join(arrays) + "}\n\n"
+        "struct RealFixture {\n  const char *name;\n  const uint8_t *data;\n"
+        "  size_t length;\n  bool expectedUbxAccept;\n  bool expectedL1s;\n"
+        "  uint8_t pab;\n  uint8_t messageType;\n  uint8_t numWords;\n};\n\n"
+        "static const RealFixture kRealFixtures[] = {\n" + "".join(rows) +
+        "};\nstatic const size_t kRealFixtureCount = "
+        "sizeof(kRealFixtures) / sizeof(kRealFixtures[0]);\n")
 
 
 def _symbol(name: str) -> str:
@@ -130,11 +140,9 @@ def render(capture: capture_io.CaptureInput, selected: list[Selected],
     for item in selected:
         header = replay_ubx.parse_sfrbx(item.record.packet)
         frame = item.frame
-        path = REAL_DIR / f"{item.name}.h"
-        files[path] = _array(item.name, item.record.packet)
         manifest_items.append({
             "name": item.name,
-            "header": path.name,
+            "header": "../packets.h",
             "source": item.source,
             "source_capture_sha256": capture.sha256,
             "capture_date": capture_date,
@@ -175,29 +183,12 @@ def render(capture: capture_io.CaptureInput, selected: list[Selected],
     files[REAL_DIR / "manifest.json"] = json.dumps(
         manifest, indent=2, sort_keys=True) + "\n"
 
-    includes = "".join(f'#include "real/{item.name}.h"\n' for item in selected)
-    rows = []
-    for item in selected:
-        symbol = _symbol(item.name)
-        frame = item.frame
-        rows.append(
-            "    {\"%s\", hoshiguard_fixture::%s, "
-            "hoshiguard_fixture::%sLength, %s, %s, %uU, %uU, %uU},\n" % (
-                item.name, symbol, symbol,
-                "true" if item.expected_accept else "false",
-                "true" if item.expected_l1s else "false",
-                frame.pab if frame else 0,
-                frame.message_type if frame else 0,
-                frame.num_words if frame else 0))
-    files[REGISTRY] = (
-        "#pragma once\n\n#include <stddef.h>\n#include <stdint.h>\n\n" + includes +
-        "\nstruct RealFixture {\n  const char *name;\n  const uint8_t *data;\n"
-        "  size_t length;\n  bool expectedUbxAccept;\n  bool expectedL1s;\n"
-        "  uint8_t pab;\n  uint8_t messageType;\n  uint8_t numWords;\n};\n\n"
-        "static const RealFixture kRealFixtures[] = {\n" + "".join(rows) +
-        "};\nstatic const size_t kRealFixtureCount = "
-        "sizeof(kRealFixtures) / sizeof(kRealFixtures[0]);\n"
-    )
+    files[PACKETS] = packet_header(
+        (item.name, item.record.packet, item.expected_accept, item.expected_l1s,
+         item.frame.pab if item.frame else 0,
+         item.frame.message_type if item.frame else 0,
+         item.frame.num_words if item.frame else 0)
+        for item in selected)
     arrival_rows = []
     for index in range(0, len(arrivals), 6):
         arrival_rows.append("    " + ", ".join(f"{value}ULL" for value in arrivals[index:index + 6]) + ",\n")

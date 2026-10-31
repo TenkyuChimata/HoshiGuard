@@ -1,4 +1,5 @@
-import json
+"""Bridge 1.0、独立 UBX/L1S 検証、証跡復旧とシリアル再接続。"""
+from support import MANIFEST
 from pathlib import Path
 import struct
 import sys
@@ -6,21 +7,25 @@ import tempfile
 import types
 import unittest
 from unittest.mock import patch
-
-from hoshiguard.bridge_frames import (
-    Hello, L1sFrame, Status, TimeStatus, parse_payload,
-)
+from hoshiguard.bridge_frames import Hello, L1sFrame, Status, TimeStatus, parse_payload
 from hoshiguard.bridge_protocol import (
-    BridgeFrame, CobsError, FrameType, SequenceDisposition, SequenceTracker,
-    StreamDecoder, cobs_decode, cobs_encode, crc32_iso_hdlc, decode_wire,
+    BridgeFrame,
+    CobsError,
+    FrameType,
+    SequenceDisposition,
+    SequenceTracker,
+    StreamDecoder,
+    cobs_decode,
+    cobs_encode,
+    crc32_iso_hdlc,
+    decode_wire,
     encode_frame,
 )
 from hoshiguard.l1s import compare_claim, verify_ubx_l1s
 from hoshiguard.output.raw_archive import RawArchiveReader, RawArchiveWriter
 from hoshiguard.serial_receiver import SerialReceiver
 
-ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = json.loads((ROOT / "test/fixtures/real/manifest.json").read_text())
+
 REAL = next(item for item in MANIFEST["fixtures"] if item["name"] == "qzss_l1s_mt44_pab53")
 
 
@@ -203,7 +208,6 @@ class BridgeProtocolTests(unittest.TestCase):
         self.assertEqual(receiver.stats.epochs, 1)
         self.assertEqual(receiver.decoder.stats.partial_discarded, 1)
         self.assertTrue(any("disconnected" in item for item in statuses))
-
 
 if __name__ == "__main__":
     unittest.main()

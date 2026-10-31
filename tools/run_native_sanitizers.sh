@@ -28,16 +28,7 @@ c++ -std=gnu++11 -Wall -Wextra -Wpedantic -Wformat=2 \
   "$ROOT/src/time_sync.cpp" \
   "$ROOT/src/ubx_dispatcher.cpp" \
   "$ROOT/src/bridge_protocol.cpp" \
-  "$ROOT/test/test_main.cpp" \
-  "$ROOT/test/test_ubx_parser.cpp" \
-  "$ROOT/test/test_qzss_l1s.cpp" \
-  "$ROOT/test/test_v020.cpp" \
-  "$ROOT/test/test_v021.cpp" \
-  "$ROOT/test/test_startup_logging.cpp" \
-  "$ROOT/test/test_v022.cpp" \
-  "$ROOT/test/test_v023.cpp" \
-  "$ROOT/test/test_v024.cpp" \
-  "$ROOT/test/test_v025.cpp" \
+  "$ROOT"/test/test_*.cpp \
   "$BUILD/unity.o" -o "$BUILD/hoshiguard-tests"
 
 # 管理実行環境の ptrace 制約により LeakSanitizer は動作しない。AddressSanitizer と UndefinedBehaviorSanitizer は有効のままとする。

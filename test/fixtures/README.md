@@ -17,18 +17,35 @@ sh tools/run_native_sanitizers.sh
 
 sanitizer スクリプトは PlatformIO が取得した Unity を使います。AddressSanitizer/UndefinedBehaviorSanitizer を有効にし、
 管理実行環境の ptrace 制約により LeakSanitizer は無効にします。
-完全な現場ログを要する検証は、元ファイルがなければ skip します。skip は合格を意味しません。
+標準テストは同梱データだけで実行し、外部原資料の有無による skip は設けません。
+未公開の完全ログとの照合は後述の `--check`、原 PDF の照合は仕様一覧の SHA-256 を使います。
 デコーダーの存在、合成試験、実放送による検証を区別し、詳細は[対応範囲](../../docs/protocol.md#対応範囲と証拠の強さ)を参照してください。
+
+## テストの配置
+
+| 場所 | 対象 |
+|---|---|
+| `test/test_{transport,gnss,time,logging,bridge}.cpp` | UBX/L1S/CRC、GNSS 設定・復旧、PPS/TIM-TP、書式・キュー、Bridge 1.0 |
+| `python/tests/test_{transport,decoders,events,api,operations}.py` | ホスト検証、DCR-017/DCX-004、意味識別・状態、HTTP/WS・再起動、現行 diagnose |
+| `tools/tests/test_{capture,sessions,specification}.py` | 捕捉・秘匿化・生成器、実証跡・合成 STATUS 境界、仕様・公式期待値 |
+| `test/test_support.h` / `python/tests/support.py` | 共通入力の生成・読み込み。独立したテスト入口は持たない |
+
+同じ動作の断言は表駆動テストや `subTest` にまとめます。8/9 word、text capture、診断 NDJSON は
+現在も実装が受理する入力なので、その検証を維持します。過去の修正に由来する検証も機能別に配置します。
 
 ## 同梱する証跡
 
 | ディレクトリ | 出所・用途 |
 |---|---|
-| [real/manifest.json](real/manifest.json) | 2026-07-14、MAX-M10S SPG 5.10 の実受信から選んだ RXM-SFRBX ヘッダー |
+| [real/manifest.json](real/manifest.json)・[packets.h](packets.h) | 2026-07-14、MAX-M10S SPG 5.10 の実受信から選んだ完全な RXM-SFRBX。合成負例は manifest で区別 |
 | [bridge_real_session/manifest.json](bridge_real_session/manifest.json) | 実機の約 1 時間の HGRAW から選んだ Bridge wire frame と PC 受信時刻 |
 | [bridge_24h_session/manifest.json](bridge_24h_session/manifest.json) | ファームウェア 0.2.5 の約 24 時間の HGRAW 抜粋 |
-| [dcr_202607/scenario_manifest.json](dcr_202607/scenario_manifest.json) | 公式試験計画の期待値。実受信バイナリではない |
-| [dcx_202607/scenario_manifest.json](dcx_202607/scenario_manifest.json) | DCX 公式試験計画の期待値。ビット仕様ではない |
+| [official/dcr-scenario.json](official/dcr-scenario.json) | 公式試験計画の期待値。実受信バイナリではない |
+| [official/dcx-scenario.json](official/dcx-scenario.json) | DCX 公式試験計画の期待値。ビット仕様ではない |
+
+合成した DCR/DCX 境界値、STATUS カウンター、不正入力、Mock は各テスト内で生成し、別ファイルへ重複保存しません。
+`packets.h` は元の 14 packet をまとめたもので、manifest のバイト列・ハッシュおよび生成器の出力と照合します。
+`real/real_capture_arrivals.h` は実受信間隔と PPS の派生データで、MCU のキュー負荷・時刻回復試験に使います。
 
 元の完全な現場ログは同梱していません。公開 fixture は NAV-PVT、座標、正確な所在地、個人識別情報、USB シリアル番号を保持しません。
 `region: withheld` と `coordinates: not retained` は意図的な情報非保持です。
@@ -59,12 +76,20 @@ python3 tools/import_24h_session_fixture.py captures/soak-24h.hgraw --check
 `--check` を外すとテスト用データを再生成します。生成物の仕様説明は本書に集約しています。
 公式試験計画の PDF は同梱せず、[spec-inventory.json](../../docs/spec-inventory.json) に原ファイル名・SHA-256・公式案内ページを残します。
 案内ページは更新されるため、別月の PDF を 2026 年 7 月の資料として扱わないでください。
-DCR の元 PDF を取得した場合は `HOSHIGUARD_DCR_SCENARIO_PDF` にパスを指定すると、テスト時に実ファイルの SHA-256 も照合します。
-未指定時はこの外部資料検証のみ skip し、manifest と仕様一覧の整合性検証は常に実行します。
+DCR の元 PDF を取得した場合は、次のように原ファイルのハッシュも照合できます。
 
 ```sh
-python3 tools/validate_dcr_test_scenario.py captures/dcr-202607.hgraw --manifest test/fixtures/dcr_202607/scenario_manifest.json
-python3 tools/validate_dcx_test_scenario.py captures/dcx-202607.hgraw --manifest test/fixtures/dcx_202607/scenario_manifest.json
+sha256sum /path/to/details_202607.pdf
+# official/dcr-scenario.json の oracle.sha256 と一致することを確認
+```
+
+標準テストでは manifest と仕様一覧の整合性、同梱抜粋からの決定的な再抽出、合成ログの生成・改変拒否を検証します。
+STATUS の合成試験は、取得前の累積値、スナップショット時の未送信分、実際のカウンター不一致を区別します。
+完全な原ログから同じ抜粋を選べること、現行ファームウェアの実機長時間安定性、原 PDF の内容の再監査は別途確認が必要です。
+
+```sh
+python3 tools/validate_dcr_test_scenario.py captures/dcr-202607.hgraw --manifest test/fixtures/official/dcr-scenario.json
+python3 tools/validate_dcx_test_scenario.py captures/dcx-202607.hgraw --manifest test/fixtures/official/dcx-scenario.json
 ```
 
 DCR manifest は Rc=7、2 回の JST/UTC 配信窓、7 シナリオ・9 カテゴリ、南海トラフ 27 ページ、
@@ -93,10 +118,14 @@ API のフィールドを含む実出力は証跡としてそのまま保持し�
 
 | ツール | 用途 |
 |---|---|
-| analyze_capture / analyze_semantic_identity | 捕捉データ・意味識別の分析 |
+| analyze_capture | 捕捉データの分析 |
 | validate_bridge_session / analyze_soak_session / audit_ndjson_stream | セッションの整合性・長時間証跡・出力の集計 |
 | import_real_fixtures / import_bridge_session_fixture / import_24h_session_fixture | 実証跡から公開可能な回帰データを抽出 |
 | validate_dcr_test_scenario / validate_dcx_test_scenario | 公式計画と受信内容の比較 |
 | sanitize_capture / capture_io / replay_ubx | プライバシー処理・取得・UBX 再生 |
 | check_spec_inventory / check_alert_support_matrix / check_alert_traceability | 仕様一覧・対応範囲・フィールド対応の検証 |
-| benchmark_bridge / benchmark_api / run_native_sanitizers | ソフトウェア性能・ネイティブ検証 |
+| benchmark_api / run_native_sanitizers | 現行経路のソフトウェア性能・ネイティブ検証 |
+
+Bridge のキュー負荷は実装そのものを使う C++ テストで検証します。
+`benchmark_api` は現行経路のみを対象とし、`--frames`、`--unique`、任意の `--network` を指定できます。
+ベンチマーク結果はハードウェア性能や長時間運転の認証ではありません。

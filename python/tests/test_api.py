@@ -3,6 +3,18 @@
 合成した変更は衛星放送の実受信証拠ではない。
 ネットワーク検証は loopback に bind し、ローカル socket を許可する実行環境が必要。
 """
+from support import (
+    ROOT,
+    FIXTURE,
+    NS,
+    SCHEMA,
+    real_alert,
+    synthetic,
+    bits,
+    wire_for_raw,
+    synthetic_dcr,
+    synthetic_dcx,
+)
 import asyncio
 from dataclasses import replace
 import json
@@ -11,55 +23,26 @@ import threading
 import time
 import unittest
 from unittest.mock import patch
-
 from aiohttp import WSMsgType, WSServerHandshakeError
 from aiohttp.test_utils import TestClient, TestServer
 from jsonschema import Draft202012Validator, FormatChecker
-
 from hoshiguard.api import create_app
-from hoshiguard.bridge_frames import L1sFrame, parse_payload
 from hoshiguard.bridge_protocol import BridgeFrame, FrameType
 from hoshiguard.events import EventProcessor
-from hoshiguard.events.canonical import semantic_fingerprint
-from hoshiguard.l1s import verify_ubx_l1s
 from hoshiguard.models import json_safe
 from hoshiguard.output.raw_archive import RawArchiveReader
 from hoshiguard.public import PublicAlert
 from hoshiguard.publisher import AlertStore
 from hoshiguard.routing import make_alert
 from hoshiguard.runtime import ReceiverConfig, ReceiverPipeline, receive
-
-ROOT = Path(__file__).resolve().parents[2]
-FIXTURE = ROOT / 'test/fixtures/bridge_real_session/selected_records.hgraw'
-NS = 1784097827645520000
-SCHEMA = json.loads((ROOT / 'docs/public-alert.v1.schema.json').read_text())
-
-
-def real_alert(name=None):
-    if name is None:
-        for record in RawArchiveReader(str(FIXTURE)):
-            if record.frame.frame_type == FrameType.L1S_FRAME:
-                claim = parse_payload(record.frame)
-                frame = verify_ubx_l1s(claim.ubx)
-                if frame.message_type == 43:
-                    return make_alert(record.frame, claim, frame)
-        raise AssertionError('missing real DCR fixture')
-    manifest = json.loads((ROOT / 'test/fixtures/real/manifest.json').read_text())
-    item = next(item for item in manifest['fixtures'] if item['name'] == name)
-    frame = verify_ubx_l1s(bytes.fromhex(item['ubx_hex']))
-    claim = L1sFrame(0, frame.sfrbx.sv_id, 5, 1, frame.sfrbx.num_words,
-                     frame.pab, frame.message_type, 15, frame.sfrbx.packet.raw, 0, 0, 'fixture')
-    return make_alert(BridgeFrame(1, 0, FrameType.L1S_FRAME, 0, 1, 100, b'', 0), claim, frame)
-
-
-def synthetic(base=None, *, action='issue', status='actual', number=0):
-    base = base or real_alert()
-    # キャッシュ済み hash だけでなく、仕様上の payload 値を明示的に変更する。
-    fields = dict(base.payload.fields)
-    fields['synthetic_test_discriminator'] = number
-    alert = replace(base, action=action, status=status,
-                    payload=replace(base.payload, fields=tuple(sorted(fields.items()))))
-    return replace(alert, identity=replace(alert.identity, semantic_fingerprint=semantic_fingerprint(alert)))
+import tempfile
+from aiohttp import web
+from hoshiguard.output.raw_archive import RawArchiveWriter
+import socket
+import subprocess
+import sys
+import urllib.error
+import urllib.request
 
 
 class PublicStateTests(unittest.TestCase):
@@ -395,6 +378,286 @@ class ApiTests(unittest.IsolatedAsyncioTestCase):
         finally:
             await other.close()
 
+"""公開処理の合成した境界例と、資源上限の不変条件。"""
 
-if __name__ == '__main__':
+
+class BoundaryTests(unittest.TestCase):
+    def test_dcx_schema_actions_and_training_realness(self):
+        for code, action in ((0, 'issue'), (1, 'issue'), (2, 'update'), (3, 'clear')):
+            store = AlertStore()
+            record = ReceiverPipeline(store).process(synthetic_dcx(action=code), NS)
+            value = json.loads(record.encoded)
+            Draft202012Validator(SCHEMA, format_checker=FormatChecker()).validate(value)
+            self.assertEqual(value['action'], action)
+            self.assertEqual(value['payload']['type'], 'missile_attack')
+            self.assertEqual(value['status'], 'test' if code == 0 else 'actual')
+            self.assertEqual(value['is_real_disaster'], code != 0)
+
+    def test_reserved_ex9_bits_never_become_prefectures(self):
+        store = AlertStore()
+        value = json.loads(ReceiverPipeline(store).process(synthetic_dcx(mask=7 | (1 << 63)), NS).encoded)
+        self.assertEqual([a['code'] for a in value['areas']], [1, 2, 3])
+        self.assertFalse(value['validity']['complete'])
+        self.assertTrue(any(f['name'] == 'EX9_reserved' for f in value['validity']['unknown_fields']))
+        self.assertEqual(value['payload']['extended']['fields']['EX9_target_area_code_list'], 7 | (1 << 63))
+        self.assertEqual(value['payload']['extended']['fields']['EX9_target_area_code_list_hex'], '8000000000000007')
+
+    def test_assumptive_hypocenter_markers_are_not_measurements(self):
+        base = real_alert('qzss_l1s_mt43_pab53')
+        raw = bytearray.fromhex(base.raw.l1s_hex)
+        for offset, width, value in ((14, 3, 1), (17, 4, 1), (96, 9, 10),
+                                     (105, 7, 10), (112, 10, 100),
+                                     (122, 4, 10), (126, 4, 10)):
+            bits(raw, offset, width, value)
+        store = AlertStore()
+        record = ReceiverPipeline(store).process(wire_for_raw(raw), NS)
+        fields = json.loads(record.encoded)['payload']['fields']
+        self.assertTrue(fields['assumptive'])
+        self.assertIsNone(fields['magnitude'])
+        self.assertIsNone(fields['depth_of_hypocenter'])
+        self.assertEqual(fields['magnitude_raw'], 10)
+        self.assertEqual(fields['depth_of_hypocenter_raw'], 10)
+
+    def test_unimplemented_japan_version_not_published(self):
+        store = AlertStore()
+        self.assertIsNone(ReceiverPipeline(store).process(synthetic_dcx(version=2), NS))
+
+    def test_ex11_unknown_country_version_is_raw_and_incomplete(self):
+        store = AlertStore()
+        value = json.loads(ReceiverPipeline(store).process(synthetic_dcx(country=10, provider=1, version=21), NS).encoded)
+        self.assertEqual(value['payload']['extended']['variant'], 'outside_japan_ex11')
+        self.assertFalse(value['validity']['complete'])
+        self.assertTrue(value['payload']['limitations'])
+
+    def test_unknown_dcr_code_is_retained_and_incomplete(self):
+        store = AlertStore()
+        record = ReceiverPipeline(store).process(synthetic_dcr(height=7), NS)
+        value = json.loads(record.encoded)
+        self.assertEqual(value['payload']['fields']['tsunami_heights_raw'], [7])
+        self.assertFalse(value['validity']['complete'])
+        self.assertEqual(value['validity']['unknown_fields'][0]['raw_value'], 7)
+
+    def test_test_hazard_never_claims_real_disaster(self):
+        for hazard in (13, 113):
+            store = AlertStore()
+            record = ReceiverPipeline(store).process(synthetic_dcx(hazard=hazard), NS)
+            self.assertFalse(json.loads(record.encoded)['is_real_disaster'])
+            self.assertEqual(record.status, 'test')
+
+    def test_hello_heartbeat_does_not_reset_reassembly(self):
+        pipeline = ReceiverPipeline(AlertStore())
+        def hello(sequence):
+            return BridgeFrame(1, 0, FrameType.HELLO, 0, sequence, 100, bytes(64), 0)
+        pipeline.process(hello(0), NS)
+        pipeline.reassembler.add(('synthetic',), 1, 2, b'A')
+        pipeline.process(hello(1), NS)
+        self.assertEqual(pipeline.reassembler.add(('synthetic',), 2, 2, b'B'), b'AB')
+        pipeline.reassembler.add(('synthetic',), 1, 2, b'A')
+        pipeline.process(hello(0), NS)
+        self.assertIsNone(pipeline.reassembler.add(('synthetic',), 2, 2, b'B'))
+
+    def test_no_disaster_does_not_fill_runtime_semantic_cache(self):
+        from hoshiguard.output.raw_archive import RawArchiveReader
+        fixture = ROOT / 'test/fixtures/bridge_real_session/selected_records.hgraw'
+        pipeline = ReceiverPipeline(AlertStore(replay=True))
+        for record in RawArchiveReader(str(fixture)):
+            pipeline.process(record.frame, record.pc_receive_ns)
+        self.assertEqual(len(pipeline.events.semantic), 1)
+
+    def test_only_one_cross_thread_wakeup_can_be_pending(self):
+        class Loop:
+            calls = []
+            def call_soon_threadsafe(self, callback):
+                self.calls.append(callback)
+        loop = Loop()
+        store, processor, base = AlertStore(), EventProcessor(), real_alert()
+        store.attach(loop)
+        sub, _ = store.subscribe()
+        for i in range(100):
+            store.publish(processor.observe(synthetic(base, number=i)), NS)
+        self.assertEqual(len(loop.calls), 1)
+        self.assertTrue(sub.overflow)
+        store.unsubscribe(sub)
+        store.detach()
+
+    def test_unknown_archive_never_appended(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / 'legacy.hgraw'
+            original = b'unsupported historical evidence'
+            path.write_bytes(original)
+            with self.assertRaises(ValueError):
+                RawArchiveWriter(str(path))
+            self.assertEqual(path.read_bytes(), original)
+
+    def test_public_examples_follow_schema(self):
+        validator = Draft202012Validator(SCHEMA, format_checker=FormatChecker())
+        Draft202012Validator.check_schema(SCHEMA)
+        for path in (ROOT / 'docs/public-alert-real-marine.json',
+                     ROOT / 'docs/public-alert-real-dcx.json'):
+            validator.validate(json.loads(path.read_text()))
+
+    def test_public_examples_match_original_hgraw_records(self):
+        from hashlib import sha256
+        from hoshiguard.output.raw_archive import RawArchiveReader
+        cases = (
+            ('marine', 'bridge_real_session', 220,
+             '74b27282f1438cc8e4080f771b36e93ed8bc635cb01d65a632220dcf9575eaa9'),
+            ('dcx', 'bridge_24h_session', 4608,
+             'e5cb12abb3295f981bbc39557a3dbd670eabff51d9eacf341e1cbdc19cdb49ed'),
+        )
+        for name, fixture, offset, digest in cases:
+            with self.subTest(name=name):
+                source = ROOT / 'test/fixtures' / fixture / 'selected_records.hgraw'
+                self.assertEqual(sha256(source.read_bytes()).hexdigest(), digest)
+                record = next(item for item in RawArchiveReader(str(source))
+                              if item.offset == offset)
+                pipeline = ReceiverPipeline(AlertStore(replay=True))
+                result = pipeline.process(record.frame, record.pc_receive_ns)
+                self.assertIsNotNone(result)
+                expected = json.loads((ROOT / f'docs/public-alert-real-{name}.json').read_text())
+                self.assertEqual(json.loads(result.encoded), expected)
+
+
+class NetworkBoundaryTests(unittest.IsolatedAsyncioTestCase):
+    async def test_timed_out_sender_isolated_and_unregistered(self):
+        store = AlertStore()
+        client = TestClient(TestServer(create_app(store, send_timeout=.01)))
+        await client.start_server()
+        async def blocked(*args, **kwargs):
+            await asyncio.sleep(10)
+        try:
+            with patch.object(web.WebSocketResponse, 'send_str', blocked):
+                ws = await client.ws_connect('/api/v1/ws')
+                await asyncio.wait_for(ws.receive(), 1)
+                await ws.close()
+            for _ in range(100):
+                if store.status()['clients'] == 0:
+                    break
+                await asyncio.sleep(.001)
+            self.assertEqual(store.status()['clients'], 0)
+            self.assertEqual((await client.get('/api/v1/status')).status, 200)
+        finally:
+            await client.close()
+
+    async def test_sender_exception_isolated_without_leaking_details(self):
+        store = AlertStore()
+        client = TestClient(TestServer(create_app(store)))
+        await client.start_server()
+        async def failed(*args, **kwargs):
+            raise RuntimeError('/private/synthetic-path')
+        try:
+            with patch.object(web.WebSocketResponse, 'send_str', failed), self.assertLogs('hoshiguard.api'):
+                ws = await client.ws_connect('/api/v1/ws')
+                message = await asyncio.wait_for(ws.receive(), 1)
+                self.assertEqual(message.data, 1011)
+                self.assertNotIn('/private', message.extra)
+                await ws.close()
+            self.assertEqual((await client.get('/api/v1/status')).status, 200)
+            other = await client.ws_connect('/api/v1/ws')
+            self.assertEqual((await other.receive_json())['type'], 'snapshot')
+            await other.close()
+        finally:
+            await client.close()
+
+    async def test_slow_subscription_does_not_affect_fast_client(self):
+        store, processor, base = AlertStore(queue_capacity=2), EventProcessor(), real_alert()
+        client = TestClient(TestServer(create_app(store)))
+        await client.start_server()
+        try:
+            ws = await client.ws_connect('/api/v1/ws')
+            await ws.receive_json()
+            slow, _ = store.subscribe()
+            for i in range(10):
+                record = store.publish(processor.observe(synthetic(base, number=i)), NS)
+                self.assertEqual((await ws.receive_json())['data']['id'], record.id)
+            self.assertTrue(store.pop(slow)[0])
+            store.unsubscribe(slow)
+            await ws.close()
+        finally:
+            await client.close()
+
+    async def test_offset_pages_and_reconnect_snapshot_truncation(self):
+        store, processor, base = AlertStore(), EventProcessor(), real_alert()
+        for i in range(105):
+            store.publish(processor.observe(synthetic(base, number=i)), NS)
+        client = TestClient(TestServer(create_app(store)))
+        await client.start_server()
+        try:
+            ws = await client.ws_connect('/api/v1/ws')
+            snapshot = await ws.receive_json()
+            self.assertTrue(snapshot['data']['truncated'])
+            first = await (await client.get('/api/v1/alerts?limit=100')).json()
+            second = await (await client.get('/api/v1/alerts?offset=100')).json()
+            self.assertEqual(len(first['data']) + len(second['data']), 105)
+            self.assertEqual(first['sequence'], second['sequence'])
+            self.assertFalse(set(x['id'] for x in first['data']) & set(x['id'] for x in second['data']))
+            await ws.close()
+        finally:
+            await client.close()
+
+"""実 loopback でのプロセス起動、signal 終了、異常終了と再生復旧の検証。"""
+
+
+class ApiProcessTests(unittest.TestCase):
+    def start(self, replay=True):
+        with socket.socket() as sock:
+            sock.bind(('127.0.0.1', 0))
+            port = sock.getsockname()[1]
+        source = ['--replay', str(FIXTURE)] if replay else ['--port', '/dev/hoshiguard-synthetic-missing-device']
+        proc = subprocess.Popen([sys.executable, '-m', 'hoshiguard', *source,
+                                 '--api', '--api-port', str(port)], cwd=ROOT,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+        def cleanup():
+            if proc.poll() is None:
+                proc.terminate()
+                try:
+                    proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    proc.kill(); proc.wait(timeout=2)
+            proc.stderr.close()
+        self.addCleanup(cleanup)
+        base = f'http://127.0.0.1:{port}'
+        deadline = time.monotonic() + 5
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                self.fail('API exited: ' + proc.stderr.read().decode())
+            try:
+                status = self.get(base + '/api/v1/status')
+                if status['receiver'] in ('replay_complete', 'disconnected'):
+                    return proc, base, status
+            except (OSError, urllib.error.URLError):
+                pass
+            time.sleep(.02)
+        self.fail('API did not become ready')
+
+    @staticmethod
+    def get(url):
+        with urllib.request.urlopen(url, timeout=.5) as response:
+            return json.load(response)
+
+    def test_sigterm_shutdown_and_replay_restart(self):
+        first, base, status1 = self.start()
+        before = self.get(base + '/api/v1/alerts/latest')
+        self.assertEqual(before['data']['provenance']['input'], 'replay')
+        first.terminate()
+        self.assertEqual(first.wait(timeout=5), 0)
+        second, base2, status2 = self.start()
+        after = self.get(base2 + '/api/v1/alerts/latest')
+        self.assertEqual(before['data'], after['data'])
+        self.assertNotEqual(status1['process_id'], status2['process_id'])
+        self.assertEqual(status2['data_mode'], 'historical')
+
+    def test_abrupt_exit_restart_never_presents_previous_cache_as_live(self):
+        first, base, _ = self.start()
+        self.assertIsNotNone(self.get(base + '/api/v1/alerts/latest')['data'])
+        first.kill()
+        first.wait(timeout=5)
+        second, base2, status = self.start(replay=False)
+        self.assertEqual(status['receiver'], 'disconnected')
+        self.assertEqual(status['data_mode'], 'historical')
+        self.assertIsNone(self.get(base2 + '/api/v1/alerts/latest')['data'])
+        second.terminate()
+        self.assertEqual(second.wait(timeout=5), 0)
+
+if __name__ == "__main__":
     unittest.main()

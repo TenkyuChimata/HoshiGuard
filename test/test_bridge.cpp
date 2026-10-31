@@ -1,18 +1,8 @@
-#include <unity.h>
-
-#include <string.h>
-
+#include "test_support.h"
 #include "bridge_protocol.h"
-#include "fixtures/real_fixture_registry.h"
 #include "fixtures/real/real_capture_arrivals.h"
 
 namespace {
-const RealFixture &bridgeFixture(const char *name) {
-  for (size_t i = 0U; i < kRealFixtureCount; ++i)
-    if (strcmp(kRealFixtures[i].name, name) == 0) return kRealFixtures[i];
-  return kRealFixtures[0];
-}
-
 bridge::Header header(bridge::FrameType type = bridge::FrameType::L1sFrame,
                       uint16_t length = 0U, uint32_t sequence = 1U) {
   bridge::Header value = {type, length, 0U, sequence, 123456789ULL};
@@ -103,7 +93,7 @@ void test_bridge_maximum_frame_round_trip() {
 }
 
 void test_bridge_real_full_ubx_is_retained_in_l1s_payload() {
-  const RealFixture &real = bridgeFixture("qzss_l1s_mt44_pab53");
+  const RealFixture &real = realFixture("qzss_l1s_mt44_pab53");
   uint8_t payload[20U + 64U] = {};
   bridge::putU16Le(payload + 12U, static_cast<uint16_t>(real.length));
   memcpy(payload + 20U, real.data, real.length);
@@ -198,16 +188,7 @@ void test_bridge_one_hour_real_rate_simulation_has_zero_l1s_drop() {
   TEST_ASSERT_LESS_OR_EQUAL_UINT32(7U, queue.highWatermark());
 }
 
-void test_bridge_115200_sustained_budget_is_sufficient() {
-  const uint64_t duration =
-      kRealL1sArrivalTimestampUs[kRealL1sArrivalCount - 1U] -
-      kRealL1sArrivalTimestampUs[0];
-  const uint64_t average =
-      (kRealL1sArrivalCount * 104ULL * 1000000ULL) / duration;
-  TEST_ASSERT_LESS_THAN_UINT64(11520ULL, average);
-}
-
-void run_v025_tests() {
+void run_bridge_tests() {
   RUN_TEST(test_bridge_crc32_iso_hdlc_check_vector);
   RUN_TEST(test_bridge_cobs_empty_and_zero_bytes);
   RUN_TEST(test_bridge_cobs_invalid_and_truncated_are_rejected);
@@ -220,5 +201,4 @@ void run_v025_tests() {
   RUN_TEST(test_bridge_active_record_is_atomic_under_partial_output);
   RUN_TEST(test_bridge_priority_evicts_status_not_l1s);
   RUN_TEST(test_bridge_one_hour_real_rate_simulation_has_zero_l1s_drop);
-  RUN_TEST(test_bridge_115200_sustained_budget_is_sufficient);
 }

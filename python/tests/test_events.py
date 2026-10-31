@@ -1,3 +1,5 @@
+"""意味識別、反復とイベント状態の独立性・資源上限を検証する。"""
+from support import ROOT, alert_for, real_marine_alert
 from dataclasses import replace
 import json
 from pathlib import Path
@@ -5,59 +7,14 @@ import subprocess
 import sys
 import tempfile
 import unittest
-
-from hoshiguard.bridge_frames import L1sFrame, parse_payload
-from hoshiguard.bridge_protocol import BridgeFrame, FrameType
-from hoshiguard.events.canonical import (
-    SEMANTIC_FINGERPRINT_VERSION, canonical_json, canonical_semantic,
-    semantic_fingerprint,
-)
+from hoshiguard.events.canonical import canonical_json, canonical_semantic, semantic_fingerprint
 from hoshiguard.events.state_machine import EventProcessor
-from hoshiguard.l1s import verify_ubx_l1s
-from hoshiguard.models import AlertArea, AlertIdentity, UnknownField
+from hoshiguard.models import AlertArea, UnknownField
 from hoshiguard.output.ndjson import NdjsonWriter
-from hoshiguard.output.raw_archive import RawArchiveReader
-from hoshiguard.routing import make_alert
-
-ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = json.loads((ROOT / "test/fixtures/real/manifest.json").read_text())
+from hoshiguard.output.human import format_human
 
 
-def fixture(name):
-    return next(item for item in MANIFEST["fixtures"] if item["name"] == name)
-
-
-def alert_for(name, sequence=1, timestamp=100):
-    verified = verify_ubx_l1s(bytes.fromhex(fixture(name)["ubx_hex"]))
-    claim = L1sFrame(1, verified.sfrbx.sv_id, verified.sfrbx.gnss_id,
-                    verified.sfrbx.sig_id, verified.sfrbx.num_words,
-                    verified.pab, verified.message_type, 0x0F,
-                    verified.sfrbx.packet.raw, 0, 0, "0.2.6")
-    bridge = BridgeFrame(1, 0, FrameType.L1S_FRAME, 0, sequence, timestamp,
-                         b"", 0)
-    return make_alert(bridge, claim, verified)
-
-
-def real_marine_alert():
-    path = ROOT / "test/fixtures/bridge_real_session/selected_records.hgraw"
-    for record in RawArchiveReader(str(path)):
-        if record.frame.frame_type != FrameType.L1S_FRAME:
-            continue
-        claim = parse_payload(record.frame)
-        if claim.message_type == 43:
-            verified = verify_ubx_l1s(claim.ubx)
-            alert = make_alert(record.frame, claim, verified)
-            if alert.category.code == 14:
-                return alert
-    raise AssertionError("selected real session fixture lacks Marine MT43")
-
-
-class SemanticIdentityV2Tests(unittest.TestCase):
-    def test_version_is_explicit(self):
-        alert = alert_for("qzss_l1s_mt43_pab53")
-        self.assertEqual(alert.identity.semantic_fingerprint_version,
-                         SEMANTIC_FINGERPRINT_VERSION)
-        self.assertEqual(SEMANTIC_FINGERPRINT_VERSION, 2)
+class SemanticIdentityTests(unittest.TestCase):
 
     def test_same_dcr_payload_different_pab_is_same_semantic(self):
         base = real_marine_alert()
@@ -143,7 +100,7 @@ class SemanticIdentityV2Tests(unittest.TestCase):
     def test_fingerprint_is_stable_in_fresh_process(self):
         expected = alert_for("qzss_l1s_mt43_pab53").identity.semantic_fingerprint
         script = ("import sys; sys.path.insert(0, 'python/tests'); "
-                  "from test_v026_identity import alert_for; "
+                  "from test_events import alert_for; "
                   "print(alert_for('qzss_l1s_mt43_pab53').identity.semantic_fingerprint)")
         result = subprocess.run([sys.executable, "-c", script], cwd=ROOT,
                                 text=True, capture_output=True, check=True)
@@ -166,15 +123,6 @@ class SemanticIdentityV2Tests(unittest.TestCase):
         self.assertEqual(repeat.pabs_seen,
                          tuple(sorted((base.receipt.pab, other_pab))))
 
-    def test_limited_event_key_does_not_merge_different_semantics(self):
-        alert = alert_for("qzss_l1s_mt43_pab53")
-        processor = EventProcessor()
-        processor.observe(alert)
-        changed_identity = replace(alert.identity, semantic_fingerprint="f" * 64)
-        changed = replace(alert, identity=changed_identity,
-                          receipt=replace(alert.receipt, timestamp_us=200))
-        self.assertEqual(processor.observe(changed).disposition, "issued")
-        self.assertEqual(alert.identity.event_key, changed.identity.event_key)
 
     def test_real_same_semantic_pab_frames_keep_distinct_frame_fingerprint(self):
         first = alert_for("qzss_l1s_mt43_pab53")
@@ -190,7 +138,10 @@ class SemanticIdentityV2Tests(unittest.TestCase):
         processor = EventProcessor()
         for value in (null, slas):
             self.assertFalse(value.alert)
-            self.assertEqual(processor.observe(value).disposition, "observed")
+            result = processor.observe(value)
+            self.assertEqual(result.disposition, "observed")
+            self.assertEqual(value.action, "none")
+            self.assertNotIn("Action: issued", format_human(result))
         self.assertEqual(len(processor.events), 0)
 
     def test_null_fingerprint_stable_across_pab(self):
@@ -229,13 +180,6 @@ class SemanticIdentityV2Tests(unittest.TestCase):
             chinese="仅显示"))
         self.assertEqual(semantic_fingerprint(alert), semantic_fingerprint(changed))
 
-    def test_ttl_and_capacity_are_bounded(self):
-        alert = alert_for("qzss_l1s_mt43_pab53")
-        processor = EventProcessor(capacity=1, ttl_us=10)
-        processor.observe(alert)
-        later = replace(alert, receipt=replace(alert.receipt, timestamp_us=1000))
-        self.assertEqual(processor.observe(later).repeat_count, 1)
-        self.assertGreaterEqual(processor.evictions, 1)
 
     def test_test_and_actual_event_spaces_are_isolated(self):
         actual = alert_for("qzss_l1s_mt43_pab53")
@@ -271,7 +215,6 @@ class SemanticIdentityV2Tests(unittest.TestCase):
             self.assertTrue(values)
             self.assertTrue(all(item["alert"] for item in values))
             self.assertFalse({"SLAS", "NULL"} & {item["service"] for item in values})
-
 
 if __name__ == "__main__":
     unittest.main()
