@@ -51,6 +51,11 @@ Explorer、OLED、EEPROM、LED、スイッチ、RESET 配線は不要です。SW
 
 TIM1 の CCR1 による補助 PPS 証跡と、主ループの停滞を検出する IWDG は独立した任意機能です。
 どちらも既定では無効です。TIM1 証跡は既存の EXTI + `micros()` 時刻や UTC の確認条件を置換しません。
+TIM1 は RCC で公称 72 MHz を確認できる場合だけ、PSC=0（約 13.89 ns/tick）の下位 16 bit 証跡を取得します。
+完全な PPS 間隔は復元しません。現在の generic variant の 48/64 MHz は安全に拒否します。
+Explorer の 8 MHz 外部発振器には `explorer-e-c111g-72mhz`（Bypass）、無源水晶の Blue Pill には
+`bluepill-tim1-validation`（ON）を用意しています。旧環境のクロックは維持します。IRQ/DMA/級連の検討・実機境界は
+[72 MHz TIM1 審査記録](docs/tim1-pps-review.md)に記載しています。
 有効化の方法、計数の限界、24 秒公称の IWDG と実機検証項目は
 [TIM1・IWDG の説明](docs/deployment.md#任意の-tim1-pps-証跡と-iwdg)を参照してください。
 

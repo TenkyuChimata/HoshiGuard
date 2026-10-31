@@ -19,6 +19,8 @@ SimAfio afio;
 SimExti exti;
 SimIwdg iwdg;
 uint32_t pclk2=72000000U;
+uint32_t sysclk=72000000U, hclk=72000000U;
+bool timerIrqEnabled[2] = {}, timerIrqPending[2] = {};
 unsigned timerSetups=0U;
 bool lsiEnabled=false;
 }
@@ -47,9 +49,15 @@ size_t HardwareSerial::write(const uint8_t *data, size_t size) {
 // 実際の setup/loop と復旧処理を同じ翻訳単位で実行する。
 #include "../../../src/main.cpp"
 #include "../../../test/fixtures/packets.h"
+#if defined(HOSHIGUARD_CLOCK_SIM)
+#include "clock_scenarios.h"
+#endif
 
 #if HOSHIGUARD_OLED
 namespace {
+#if defined(HOSHIGUARD_REAL_OLED)
+unsigned &oledBegins=sim::i2cBegins;
+#else
 unsigned oledBegins=0U;
 bool beginBus(void *) { ++oledBegins; return true; }
 bool startBus(void *, const uint8_t *, size_t, uint32_t) { return true; }
@@ -58,8 +66,11 @@ OledTransfer pollBus(void *, uint32_t) {
   return OledTransfer::Failed;
 }
 void endBus(void *) {}
+#endif
 }
+#if !defined(HOSHIGUARD_REAL_OLED)
 oled::Bus stm32OledBus() { return {0, beginBus, startBus, pollBus, endBus}; }
+#endif
 #endif
 
 namespace {
@@ -81,7 +92,7 @@ void latchPps(uint16_t counter) {
   TIM1->SR.bits |= TIM_SR_CC1IF;
 }
 void pulse() {
-  latchPps(static_cast<uint16_t>(micros()));
+  latchPps(static_cast<uint16_t>(static_cast<uint64_t>(sim::nowMs)*72000U));
   EXTI->PR=0U; // HAL_GPIO_EXTI_IRQHandler はコールバック前に消去する。
   assert(sim::ppsInterrupt);
   sim::ppsInterrupt();
@@ -222,7 +233,9 @@ void silentRecovery() {
 void captureEvidence() {
   setup();
   assert(pps.hardwareActive());
-  assert(TIM1->PSC==71U && TIM1->ARR==65535U && TIM1->DIER==0U);
+  assert(TIM1->PSC==0U && TIM1->ARR==65535U && TIM1->RCR==0U && TIM1->DIER==0U);
+  assert(!sim::timerIrqEnabled[0] && !sim::timerIrqEnabled[1]);
+  assert(!sim::timerIrqPending[0] && !sim::timerIrqPending[1]);
   PpsSnapshot out = {};
   assert(!pps.update(out));
   const uint32_t times[] = {1000U,2000U,3000U,6000U,6001U,7001U,4294000U,4295000U};
@@ -232,7 +245,7 @@ void captureEvidence() {
   for (uint32_t now : times) {
     sim::nowMs=now;
     const uint32_t timestamp=micros();
-    const uint16_t counter=static_cast<uint16_t>(timestamp-17U);
+    const uint16_t counter=static_cast<uint16_t>(static_cast<uint64_t>(now)*72000U-17U);
     latchPps(counter);
     TIM1->SR.bits |= 1U; // 更新未処理・同時発生を含めて UIF は保持する。
     sim::ppsInterrupt();
@@ -283,15 +296,25 @@ void captureEvidence() {
 
 void captureApbClock(bool divided) {
   sim::pclk2=divided ? 36000000U : 72000000U;
-  RCC->CFGR=(divided ? 4U : 3U) << 11;
+  RCC->CFGR=(RCC->CFGR & ~RCC_CFGR_PPRE2) | ((divided ? 4U : 3U) << 11);
   setup();
-  assert(pps.hardwareActive() && TIM1->PSC==71U);
+  assert(pps.hardwareActive() && TIM1->PSC==0U);
 }
 
 void captureUnavailable(const char *reason) {
   timerObj_t other = {};
   if (!strcmp(reason,"timer-owner")) HardwareTimer_Handle[0]=&other;
   else if (!strcmp(reason,"timer-clock")) sim::pclk2=71000001U;
+  else if (!strcmp(reason,"timer-8mhz")) sim::sysclk=sim::hclk=sim::pclk2=8000000U;
+  else if (!strcmp(reason,"timer-48mhz")) sim::sysclk=sim::hclk=sim::pclk2=48000000U;
+  else if (!strcmp(reason,"timer-64mhz")) sim::sysclk=sim::hclk=sim::pclk2=64000000U;
+  else if (!strcmp(reason,"timer-stale-clock")) sim::sysclk=36000000U;
+  else if (!strcmp(reason,"timer-ahb")) RCC->CFGR |= 8U << 4U;
+  else if (!strcmp(reason,"timer-apb4")) { sim::pclk2=18000000U; RCC->CFGR |= 5U << 11U; }
+  else if (!strcmp(reason,"timer-unlocked")) RCC->CR &= ~RCC_CR_PLLRDY;
+  else if (!strcmp(reason,"timer-hse-unready")) RCC->CR &= ~RCC_CR_HSERDY;
+  else if (!strcmp(reason,"timer-switching")) RCC->CFGR &= ~RCC_CFGR_SW;
+  else if (!strcmp(reason,"timer-reset")) RCC->APB2RSTR=RCC_APB2RSTR_TIM1RST;
   else if (!strcmp(reason,"timer-remap")) AFIO->MAPR=AFIO_MAPR_TIM1_REMAP;
   else RCC->APB2ENR=RCC_APB2ENR_TIM1EN;
   setup();
@@ -299,7 +322,72 @@ void captureUnavailable(const char *reason) {
   sim::nowMs=1000U; pulse();
   PpsSnapshot out = {};
   assert(pps.update(out) && out.edgeMicros==1000000U && out.sequence==1U);
-  assert(!out.hardware.captureValid);
+  assert(!out.hardware.captureValid && out.hardware.unavailable);
+}
+
+void captureRuntimeFaults() {
+  setup();
+  timerObj_t other = {};
+  for (unsigned fault=0U; fault<22U; ++fault) {
+    assert(pps.hardwareActive());
+    pulse();
+    PpsSnapshot out = {};
+    assert(pps.update(out) && out.hardware.captureValid);
+    const TIM_TypeDef savedTimer=*TIM1;
+    const SimRcc savedRcc=*RCC;
+    timerObj_t *const savedOwner=HardwareTimer_Handle[0];
+    switch (fault) {
+      case 0: TIM1->PSC=71U; break;
+      case 1: TIM1->ARR=1000U; break;
+      case 2: TIM1->RCR=1U; break;
+      case 3: TIM1->CR1=0U; break;
+      case 4: TIM1->CR1 |= 1U << 4; break;
+      case 5: TIM1->CR2=0x20U; break;
+      case 6: TIM1->SMCR=7U; break;
+      case 7: TIM1->CCMR1 |= 1U << 4; break;
+      case 8: TIM1->CCMR2=1U; break;
+      case 9: TIM1->CCER |= 2U; break;
+      case 10: TIM1->DIER=1U; break;
+      case 11: TIM1->BDTR=1U; break;
+      case 12: RCC->CFGR ^= 4U << 11; break;
+      case 13: RCC->CR &= ~RCC_CR_PLLRDY; break;
+      case 14: RCC->APB2ENR=0U; break;
+      case 15: RCC->APB2RSTR=RCC_APB2RSTR_TIM1RST; break;
+      case 16: AFIO->MAPR=AFIO_MAPR_TIM1_REMAP; break;
+      case 17: HardwareTimer_Handle[0]=&other; break;
+      case 18: sim::timerIrqEnabled[0]=true; break;
+      case 19: sim::timerIrqEnabled[1]=true; break;
+      case 20: sim::hclk=36000000U; break;
+      case 21: HardwareTimer_Handle[0]=0; break;
+    }
+    const uint32_t dier=TIM1->DIER, ccer=TIM1->CCER;
+    pulse();
+    assert(pps.update(out) && !out.hardware.captureValid && out.hardware.unavailable);
+    assert(!out.hardware.intervalModuloValid && !pps.hardwareActive());
+    assert(out.edgeMicros==micros());
+    // 故障検出時に他者の設定・割り込みを変更しない。
+    assert(TIM1->DIER==dier && TIM1->CCER==ccer);
+    if (fault==17U || fault==21U) {
+      const unsigned setups=sim::timerSetups;
+      pps.begin();
+      assert(!pps.hardwareActive() && sim::timerSetups==setups);
+    }
+    *TIM1=savedTimer;
+    *RCC=savedRcc;
+    AFIO->MAPR=0U;
+    HardwareTimer_Handle[0]=savedOwner;
+    sim::hclk=72000000U;
+    sim::timerIrqEnabled[0]=sim::timerIrqEnabled[1]=false;
+    pulse();
+    assert(pps.update(out) && out.hardware.unavailable); // 元に戻すだけでは再開しない。
+    pps.begin();
+    assert(pps.hardwareActive() && !pps.update(out));
+    pulse();
+    assert(pps.update(out) && out.hardware.captureValid && !out.hardware.intervalModuloValid);
+    pulse();
+    assert(pps.update(out) && out.hardware.intervalModuloValid);
+  }
+  assert(sim::timerSetups==1U);
 }
 #endif
 
@@ -354,10 +442,19 @@ void watchdogInterruptedPass(const char *where) {
 int main(int argc, char **argv) {
   assert(argc==2);
   (void)bridgeTextSequence;
+#if defined(HOSHIGUARD_CLOCK_SIM)
+  if (!strncmp(argv[1],"clock-",6U)) {
+    clockScenario(argv[1]);
+    printf("クロック模擬試験: %s PASS\n",argv[1]);
+    return 0;
+  }
+  initializeClock();
+#endif
 #if USE_TIM1_INPUT_CAPTURE
   if (!strcmp(argv[1],"capture")) captureEvidence();
   else if (!strcmp(argv[1],"capture-apb")) captureApbClock(true);
   else if (!strcmp(argv[1],"capture-apb-undivided")) captureApbClock(false);
+  else if (!strcmp(argv[1],"capture-runtime")) captureRuntimeFaults();
   else if (!strncmp(argv[1],"timer-",6U)) captureUnavailable(argv[1]);
   else
 #endif

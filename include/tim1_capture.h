@@ -3,12 +3,24 @@
 #include <stdint.h>
 
 namespace pps_hardware {
+// 周波数は RCC と基板の発振器定義による公称値。UTC 精度を表す定数ではない。
+static const uint32_t kCounterHz = 72000000UL;
+static const uint32_t kCounterPeriod = 65536UL;
+// RM0008 の HPRE/PPRE2 を SYSCLK から復号する。古い SystemCoreClock に依存しない。
+inline uint32_t tim1InputClock(uint32_t sysclk, uint32_t cfgr) {
+  static const uint8_t ahbShift[16] = {0, 0, 0, 0, 0, 0, 0, 0, 1, 2, 3, 4, 6, 7, 8, 9};
+  const uint32_t hclk = sysclk >> ahbShift[(cfgr >> 4U) & 15U];
+  const uint32_t ppre2 = (cfgr >> 11U) & 7U;
+  return ppre2 < 4U ? hclk : (hclk >> (ppre2 - 3U)) * 2U;
+}
+
 // RM0008: CC1IF は CCR1 読み出しで、CC1OF は rc_w0 書き込みで消去する。
 static const uint32_t kCc1If = 1U << 1;
 static const uint32_t kCc1Of = 1U << 9;
 static const uint32_t kValid = 1UL << 16;
 static const uint32_t kOvercapture = 1UL << 17;
 static const uint32_t kReadRace = 1UL << 18;
+static const uint32_t kUnavailable = 1UL << 19;
 
 template <class Registers>
 uint32_t readCapture(Registers &io) {
@@ -37,6 +49,7 @@ struct Evidence {
   bool intervalModuloValid;
   bool overcapture;
   bool readRace;
+  bool unavailable;
 };
 
 class IntervalEvidence {
@@ -45,9 +58,10 @@ class IntervalEvidence {
   Evidence observe(uint32_t sequence, uint32_t sample) {
     Evidence out = {};
     out.capturedCounter = static_cast<uint16_t>(sample);
-    out.captureValid = (sample & kValid) != 0U;
+    out.captureValid = (sample & (kValid | kOvercapture | kReadRace | kUnavailable)) == kValid;
     out.overcapture = (sample & kOvercapture) != 0U;
     out.readRace = (sample & kReadRace) != 0U;
+    out.unavailable = (sample & kUnavailable) != 0U;
     out.intervalModuloValid = out.captureValid && havePrevious_ &&
                               sequence - previousSequence_ == 1U;
     if (out.intervalModuloValid)
@@ -66,6 +80,7 @@ class IntervalEvidence {
 
 // 無効化・競合時にも EXTI の登録と通し番号には触れない。
 bool beginTim1();
+bool tim1Active();
 uint32_t sampleTim1();
 void discardTim1();
 }  // namespace pps_hardware

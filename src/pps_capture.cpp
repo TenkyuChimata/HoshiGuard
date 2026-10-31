@@ -5,7 +5,7 @@ PpsCapture *PpsCapture::instance_ = 0;
 PpsCapture::PpsCapture()
     : isrMicros_(0), isrSequence_(0), isrFlag_(false)
 #if USE_TIM1_INPUT_CAPTURE
-      , isrHardwareSample_(0U), hardwareActive_(false)
+      , isrHardwareSample_(0U)
 #endif
       {}
 
@@ -17,7 +17,7 @@ void PpsCapture::begin() {
   detachInterrupt(digitalPinToInterrupt(PPS_PIN));
   isrFlag_ = false;
   intervalTracker_ = PpsIntervalTracker();
-  hardwareActive_ = pps_hardware::beginTim1();
+  (void)pps_hardware::beginTim1();
   isrHardwareSample_ = 0U;
   hardwareIntervals_ = pps_hardware::IntervalEvidence();
 #endif

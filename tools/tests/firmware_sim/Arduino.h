@@ -104,11 +104,11 @@ struct SimCapture {
   operator uint32_t() const;
 };
 struct TIM_TypeDef {
-  uint32_t CR1=0U, CCER=0U, DIER=0U, SMCR=0U, PSC=0U, ARR=0U, RCR=0U, CNT=0U, EGR=0U, CCMR1=0U;
+  uint32_t CR1=0U, CR2=0U, CCER=0U, DIER=0U, SMCR=0U, PSC=0U, ARR=0U, RCR=0U, CNT=0U, EGR=0U, CCMR1=0U, CCMR2=0U, BDTR=0U;
   SimStatus SR;
   SimCapture CCR1;
 };
-struct SimRcc { uint32_t APB2ENR=0U, CFGR=0U, CSR=0U; };
+struct SimRcc { uint32_t APB2ENR=0U, APB1ENR=0U, APB2RSTR=0U, CFGR=0x001D040AU, CR=0x03030003U, CSR=0U, CIR=0U; };
 struct SimAfio { uint32_t MAPR=0U; };
 struct SimExti { uint32_t PR=0U; };
 struct SimIwdg { uint32_t prescaler=0U, reload=0U, lastFeed=0U; unsigned feeds=0U; bool enabled=false; };
@@ -119,6 +119,8 @@ extern SimAfio afio;
 extern SimExti exti;
 extern SimIwdg iwdg;
 extern uint32_t pclk2;
+extern uint32_t sysclk, hclk;
+extern bool timerIrqEnabled[2], timerIrqPending[2];
 extern unsigned timerSetups;
 extern bool lsiEnabled;
 }
@@ -128,6 +130,13 @@ extern bool lsiEnabled;
 #define EXTI (&sim::exti)
 #define IWDG (&sim::iwdg)
 #define RCC_APB2ENR_TIM1EN (1U << 11)
+#define RCC_APB2RSTR_TIM1RST (1U << 11)
+#define RCC_CR_PLLRDY (1U << 25)
+#define RCC_CR_HSERDY (1U << 17)
+#define RCC_CR_HSIRDY (1U << 1)
+#define RCC_CFGR_PLLSRC (1U << 16)
+#define RCC_CFGR_SW 3U
+#define RCC_CFGR_SWS 12U
 #define RCC_CFGR_PPRE2 (7U << 11)
 #define RCC_CFGR_PPRE2_2 (4U << 11)
 #define AFIO_MAPR_TIM1_REMAP (3U << 6)
@@ -142,5 +151,13 @@ extern bool lsiEnabled;
 #define LSI_VALUE 40000U
 #define UNUSED(value) (void)(value)
 inline uint32_t HAL_RCC_GetPCLK2Freq() { return sim::pclk2; }
+inline uint32_t HAL_RCC_GetSysClockFreq() { return sim::sysclk; }
+inline uint32_t HAL_RCC_GetHCLKFreq() { return sim::hclk; }
+enum { TIM1_UP_IRQn=0, TIM1_CC_IRQn=1 };
+inline void NVIC_DisableIRQ(int irq) { sim::timerIrqEnabled[irq]=false; }
+inline void NVIC_ClearPendingIRQ(int irq) { sim::timerIrqPending[irq]=false; }
+inline uint32_t NVIC_GetEnableIRQ(int irq) { return sim::timerIrqEnabled[irq] ? 1U : 0U; }
 inline int digitalPinToPinName(int pin) { return pin; }
 static const int PA_8=PA8;
+
+#include "clock_hal.h"

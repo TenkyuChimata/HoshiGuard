@@ -15,6 +15,9 @@ pio test -e native
 sh tools/run_native_sanitizers.sh
 pio run -e genericSTM32F103C8-bridge-binary -e generic-minimal -e explorer-e-c111g -e explorer-e-c111g-recovery
 pio run -e generic-tim1-validation -e generic-iwdg-validation -e generic-tim1-iwdg-validation
+pio run -e bluepill-tim1-validation -e explorer-e-c111g-full
+pio run -e explorer-e-c111g-72mhz -e explorer-e-c111g-72mhz-tim1
+pio run -e explorer-e-c111g-72mhz-iwdg -e explorer-e-c111g-72mhz-tim1-iwdg
 sh tools/run_hardware_simulation.sh
 ```
 
@@ -45,14 +48,21 @@ sanitizer スクリプトは PlatformIO が取得した Unity を使います。
 `pio test -e native` と sanitizer は `tim1_capture.h` の製品コードを直接実行し、
 捕捉単体、連続 1 Hz、短間隔、欠落後の長間隔、下位カウント周回、UIF 同時発生・未処理、
 多数の連続周回、overcapture、CCR 読み出し競合と ES096 の EXTI pending、間隔証跡の無効化を確認します。
+72 MHz の各位相、1/2/10 秒、±100 ppm の tick 数、32/64 bit 境界でも下位値しか得られないこと、
+HPRE/PPRE2 の全符号化も検査します。完全時刻・秒間隔の実装を検証したという意味ではありません。
 秒間隔への周回数の復元は実装していないため、UIF から復元できたとする模擬試験は設けません。
+整数 ns への変換や高位カウンターも追加しておらず、それらの丸め・単調性保証は対象外です。
 
 `tools/run_hardware_simulation.sh` は実際の `setup()/loop()`、`PpsCapture`、GNSS 設定・復旧、
 TIM-TP/Bridge を、Arduino とレジスターの境界だけ差し替えて実行します。
 TIM1/IWDG の 4 組合せで同じ合成入力・実 UBX fixture を使い、全 Bridge wire byte を `cmp` します。
 ビルド時刻による HELLO の差を避けるため `SOURCE_DATE_EPOCH` を固定します。
 再初期化、`micros()` の 32 bit 周回、主ループの取りこぼし、ハード復旧後の古い証跡の破棄、
-TIM1 の所有・既存クロック・remap・分周不可による EXTI 継続、APB2 タイマークロック 2 倍則も検査します。
+TIM1 の所有・既存クロック・remap・72 MHz 不成立による EXTI 継続、APB2 タイマークロック 2 倍則も検査します。
+72 MHz の PSC=0/ARR=65535/RCR=0、HardwareTimer setup が有効にする NVIC の明示的な無効化も確認します。
+8/48/64 MHz、AHB/APB 分周、古い HAL クロック、PLL/HSE 未準備、クロック切替中を拒否します。
+実行中の 22 種類の設定・所有・gate/reset/remap/NVIC 故障を製品コードへ注入し、
+証跡無効化、他者の設定の保存、故障ラッチ、明示再初期化、二つの新規捕捉による間隔証跡の復帰を確認します。
 既存の `test_time.cpp` による NAV-PVT、TIM-TP、UTC の confirmed/tentative 回帰も維持します。
 
 IWDG は導入済み STM32duino の **実際の `IWatchdog.cpp`** をコンパイルし、LL 呼び出しだけを模擬します。
@@ -64,10 +74,25 @@ IWDG は導入済み STM32duino の **実際の `IWatchdog.cpp`** をコンパ�
 IWatchdog の検索先は `${PLATFORMIO_CORE_DIR:-$HOME/.platformio}/packages/framework-arduinoststm32` です。
 上記の firmware build を先に実行してフレームワークを導入してください。
 
+同スクリプトは clock profile 0/1/2 も検査します。実際の generic variant と strong な SystemClock_Config を
+同時にリンクし、従来の HSI 48 MHz、8 MHz 水晶 ON、8 MHz 外部発振器 Bypass の選択を確認します。
+RCC/Flash/SysTick、SystemCoreClock と HAL 読戻しの一致・不一致、HSE/PLL/HAL の起動失敗、
+CSS/NMI と実行中の設定異常による安全停止を検査します。停止時の __WFI は模擬境界で例外として捕捉します。
+CPU が実際に停止・リセットした証拠ではありません。故障後に UART/TIM1/I2C/SysTick が停止し、
+製品 loop の時刻処理や送信へ進まないことを断言します。
+
+core の実 clock.c による micros/millis/SysTick、導入済み HAL の実 BRR マクロ、
+製品 oled_stm32.cpp の I2C 初期化も 48/72 MHz で実行します。HAL RCC の待機ループ・発振器・バスの電気動作は模擬です。
+72 MHz の各 profile と TIM1/IWDG の 4 組合せは、旧 48 MHz と同じ実 UBX/合成 PPS 入力で全 Bridge byte を比較します。
+profile 不正値・未対応 MCU・8 MHz 以外の HSE_VALUE は拒否します。
+
 標準の三つの `generic-*-validation` に加え、最小構成・Explorer・復旧環境でも同じ二つのフラグを組み合わせてビルドします。
 これらはホスト上のソフトウェア検証であり、以下は実機試験として残ります。
 
 - PA8 の実 PPS と信号発生器を使った CCR1 のラッチ、周回近傍、短パルス・欠落・復帰、overcapture の確認。
+- `F_CPU` と実 RCC を区別し、72 MHz の実周波数・PSC=0・約 910.222 µs 周回を確認する。
+- 外部発振器と無源水晶のモード、Flash、SysTick、UART BRR と線上 baud、I2C SCL を実機で確認する。
+- HSE 切断で CSS/NMI が働き、通信停止・SWD 診断・IWDG または手動リセット後の再初期化を確認する。
 - EXTI の既存時刻と CCR1 の位相、同期回路・入力波形・発振器誤差を含むジッター測定。UTC 誤差は別に評価する。
 - 高負荷の GNSS UART と Bridge を同時に動かし、ISR 時間、USART2 ORE、受信欠落、Bridge の遅延と最大 loop 時間を比較する。
 - IWDG を有効にした実 MCU で主ループを停止し、LSI の条件差を含めて実際のリセットと再起動・受信再開を確認する。
@@ -75,6 +100,8 @@ IWatchdog の検索先は `${PLATFORMIO_CORE_DIR:-$HOME/.platformio}/packages/fr
 - 電源投入・再初期化・SWD ブレークポイント、option bytes、通常基板と Explorer の両方での動作確認。
 
 実機検証が済むまで両機能の本番推奨は無効です。ビルド成功や sanitizer の成功を実機試験完了と扱いません。
+方式比較、generic variant の実クロック、Blue Pill の基板条件、変更前後の容量と最新の件数は
+[TIM1 審査記録](../../docs/tim1-pps-review.md)を参照してください。
 
 ## 同梱する証跡
 

@@ -106,6 +106,58 @@ OLED 以外は未指定なら 0 です。継承元ですでに指定されてい
 OLED 無効時は表示スイッチも読まず、I2C1 を初期化しません。LED・復旧の無効時も対応する状態・GPIO 操作を生成しません。
 GPIO は `board_support.cpp`、時刻依存の補助処理は `receiver_aux.cpp` に分離し、Bridge 1.0 と UART baud は変更しません。
 
+### 任意の 72 MHz システムクロック
+
+既定環境は従来の variant 初期化を維持します。今回の generic ビルドは HSI/2×12 の **48 MHz** です。
+STM32duino は `F_CPU` を通常 `SystemCoreClock` として扱い、HAL は実際の PCLK から UART を設定します。
+板定義の 72 MHz 表示だけを根拠に動作周波数を判断しません。
+
+`HOSHIGUARD_CLOCK_PROFILE` は `0`（従来、既定）、`1`（8 MHz 無源水晶、HSE ON）、
+`2`（8 MHz 外部発振器、HSE Bypass）です。TIM1、IWDG、OLED、スイッチ、RESET の有効化とは独立しています。
+`1/2` だけが STM32duino の weak `SystemClock_Config()` を HAL ベースの実装で置換します。
+HSE_VALUE=8,000,000、PLL×9、SYSCLK/HCLK=72 MHz、PCLK1=36 MHz、PCLK2/TIM1CLK=72 MHz、
+Flash latency=2、prefetch 有効、USB=48 MHz、ADC=12 MHz を設定・照合します。
+HAL の `ClockConfig` に SystemCoreClock と 1 ms SysTick の更新を任せます。
+
+| 環境 | 発振器 | TIM1 証跡 | IWDG |
+|---|---|---|---|
+| 既存の generic/Explorer 環境 | 従来の variant | 既存スイッチのまま。48/64 MHz なら安全拒否 | 既存スイッチのまま |
+| `bluepill-tim1-validation` | 8 MHz 無源水晶、ON | 有効 | 無効 |
+| `explorer-e-c111g-72mhz` | 8 MHz 外部発振器、Bypass | 無効 | 無効 |
+| `explorer-e-c111g-72mhz-tim1` | 同上 | 有効 | 無効 |
+| `explorer-e-c111g-72mhz-iwdg` | 同上 | 無効 | 有効 |
+| `explorer-e-c111g-72mhz-tim1-iwdg` | 同上 | 有効 | 有効 |
+
+Explorer E-C111G PCB 20250613 の Y1 は SG-8002CA 8M-PCML0 の CMOS 発振器で、OSC_IN/PD0 を駆動します。
+参照 PDF の直列抵抗は **R23=10 Ω**、PD1/OSC_OUT は未接続です（R22 は RS485 終端）。
+RM0008 §7.2.1 の外部クロック接続なので HSEBYP=1 を選びます。Explorer 原版の `RCC_HSE_ON` をそのままコピーしません。
+無源水晶は OSC_IN/OSC_OUT 間の発振回路を必要とするので Bypass と混同しません。
+汎用基板も実際の発振器に合う profile を選べます。EEPROM や Explorer の周辺機能を前提としません。
+
+起動失敗、PLL/HSE 未準備、RCC/HAL/Flash/SysTick 読戻し不一致は、UART 初期化・受信処理に進まず安全停止します。
+通常動作でも setup/loop の入口で設定を検査します。CSS は有効にし、HSE 故障の NMI では CSSC を消去した上で
+UART1/2、TIM1、I2C1、SysTick を停止します。HSI への自動切替後に古い BRR/時基で通信を継続しません。
+`board_clock::lastFault` を SWD から読めます。故障理由は RAM のみで、リセット後は保持しません。
+既に動作中の IWDG があれば給餌せず LSI によるリセットに任せ、それ以外は SWD/外部リセットまで意図的に停止します。
+安全停止中は回復待ちの UART ログや時刻推定を行いません。IWDG の 24 秒公称値を CPU 周波数比で変更しません。
+
+実機検証前の通常運用は従来環境を使います。次は **操作者が手動で実行する例**で、この改修では upload を実行していません。
+
+```sh
+# 従来の通常運用用。追加機能・クロック設定は既定値のまま。
+pio run -e genericSTM32F103C8-bridge-binary
+pio run -e genericSTM32F103C8-bridge-binary -t upload
+
+# Explorer の 8 MHz 外部発振器を確認した実機評価用。
+pio run -e explorer-e-c111g-72mhz
+pio run -e explorer-e-c111g-72mhz-tim1
+pio run -e explorer-e-c111g-72mhz-tim1 -t upload
+# IWDG を合わせる評価には explorer-e-c111g-72mhz-tim1-iwdg を選ぶ。
+```
+
+実際の 72 MHz、UART/I2C 波形、PPS ジッター、HSE 切断と IWDG 復帰、消費電力、長期連続運転は未測定です。
+新環境の本番推奨は実機試験後に判断します。[審査記録](tim1-pps-review.md)に根拠と検証境界をまとめています。
+
 ### 任意の TIM1 PPS 証跡と IWDG
 
 STM32F103C8T6 と MAX-M10S のみで使用できる実機検証用の機能です。Explorer の回路は使いません。
@@ -133,67 +185,60 @@ pio run -e generic-tim1-iwdg-validation
 
 #### TIM1 の動作と限界
 
-PA8/TIM1_CH1 の上昇エッジを、TI1 直接入力、立ち上がり極性、入力分周なし、デジタルフィルターなしで
-**ハードウェア CCR1 にラッチ**します。元の EXTI コールバックだけが PPS の通し番号を増やし、
-最初に従来どおり `micros()` を読み、続いてラッチ済み CCR1 と状態を短く記録します。
-二つの ISR が同じ PPS を数える方式ではありません。TIM1 の割り込みと DMA は使いません。
-ISR 内で整形、ログ、UART 送信、I2C、間隔計算は行いません。
+`USE_TIM1_INPUT_CAPTURE=1` は PA8/TIM1_CH1 の補助 CCR1 証跡を有効にします。
+RCC から得た TIM1 入力が公称 **72 MHz** である場合だけ PSC=0、ARR=65535、RCR=0 を設定します。
+1 tick は約 **13.888889 ns**、16 bit 周回は約 **910.222222 µs** です。
+それ以外のクロック、古い `SystemCoreClock`、所有・remap 競合は安全に拒否し、元の EXTI を続けます。
 
-APB2 のタイマークロックを確認して 1 MHz に整数分周します。標準 72 MHz では PSC=71、ARR=65535、
-1 tick=1 µs、周回周期=65.536 ms です。APB2 分周時のタイマークロック 2 倍則も適用します。
-上位カウントは保持せず、CCR1 と前後の差を **modulo 65536** の証跡として保持します。
-1 Hz の 1,000,000 tick はこの差では 16,960 になります。これを 16,960 µs の PPS 間隔と解釈してはいけません。
-完全な間隔を得るための周回数の推定や、CCR1 から `micros()` への変換は実装していません。
+**`genericSTM32F103C8` の名前や `F_CPU=72000000` は 72 MHz の動作証明ではありません。**
+今回使用した STM32duino 2.4.0 は generic variant の `generic_clock.c` を選びます。
+現在の `PIO_FRAMEWORK_ARDUINO_ENABLE_CDC=0` も builder が定義名の存在で処理するため `USBCON` が有効となり、
+実際の基線 ELF は HSI/2×12=48 MHz の初期化を含んでいました。USB 定義がなければ同 variant は HSI/2×16=64 MHz です。
+既存の generic/Explorer 環境のシステムクロックや USB 設定は今回変更せず、これらの構成では TIM1 証跡だけ無効になります。
 
-UIF は捕捉値の上位ビットに使わず、通常の読み出しでは消去もしません。
-CCR1 と UIF の同時発生、更新処理の遅延、複数の連続周回は下位値の解釈を変えません。
-周回ごとのサービス期限もなく、TIM1 更新割り込みは **0 回/秒**です。
-これにより 1 MHz で約 15.26 回/秒の更新 IRQ、または 72 MHz で約 1,099 回/秒の更新 IRQ を追加せずに済みます。
-追加負荷は元の PPS ISR の SR 2 回・CCR1 最大 1 回・EXTI pending 最大 1 回の読み出しと状態保存です。
-競合時だけ CC1E を一時停止し、CC1IF/CC1OF を rc_w0 で消去して再開します。実行時間の実測値はありません。
+外付け **8 MHz 水晶を実装した Blue Pill** では、次の専用検証環境が clock profile=1 の HAL 実装で
+HSE ON×9、HCLK=72 MHz、PCLK1=36 MHz、PCLK2=72 MHz を選びます。
+同じ入力捕捉スイッチを継承します。clock profile=1 の標準 HAL 初期化と安全検査も使用します。
 
-CCR1 読み出し前後の CC1OF と、読み出し後の CC1IF を検査します。
-[ES096 の Missing capture flag / Overcapture detected too early](https://www.st.com/resource/en/errata_sheet/cd00190234-stm32f101x8-b-stm32f102x8-b-and-stm32f103x8-b-medium-density-device-limitations-stmicroelectronics.pdf)
-にも対応し、EXTI コールバック前に消去された PA8 pending が再設定されていれば競合として捨てます。
-真の overcapture と勘違いの可能性があるフラグを区別して精度を装うことはせず、どちらも証跡を無効化します。
-捕捉なし、overcapture、読み出し競合、主ループが複数の PPS をまとめて消費した場合は、
-連続したハードウェア間隔の証拠にしません。エラー後は改めて二つの有効な連続サンプルが必要です。
+```sh
+pio run -e bluepill-tim1-validation
+```
 
-単一の CCR1 を正しい一つのエッジに対応させるには、次の上昇エッジより前に読み終える必要があります。
-1 Hz 入力なら遅延は **1 秒未満**が必要で、短い異常パルス列ではその短い間隔が上限です。
-これは保存値を失わないための条件であり、UTC 時刻の許容誤差ではありません。
-その間に 65.536 ms の周回が何度起きても下位証跡は失いません。上位周回数は常に不明です。
-次のエッジまで ISR が動かない場合は捕捉を救済せず、検出した歧義を無効化します。
-長い全割り込み禁止では、従来の SysTick に基づく `micros()` 自体にも制限があります。
-1 ms 周期の SysTick を複数回未処理にすると経過時間を失い得ます。この機能はその制限を除去しません。
+この board 定義を水晶のない基板へ流用しません。8 MHz 外部発振器があれば profile=2 を選び、
+対応する外部クロック自体がなければ従来の profile=0 を維持します。
+別基板では基板に適合した variant / `SystemClock_Config()` と正しい `HSE_VALUE` を用意し、
+RCC の読み戻しと周波数の実測を行います。既存の三つの `generic-*-validation` も比較・拒否確認用として残します。
 
-`PpsSnapshot.hardware` には `capturedCounter`、`intervalModuloTicks` と個別の有効性・競合フラグが入ります。
-対応付けは同じ EXTI サンプルの `sequence` に限定し、`edgeMicros` は変更しません。
-`snapshot()` は新しい間隔証跡を作りません。デバッガーでは `hardwareActive()` で初期化結果を確認できます。
-テキスト診断の `DEBUG_LEVEL>=3` では `PPS_HW` を主ループから出力します。
-Binary Bridge では引き続き全テキストを抑止し、証跡のためのフレーム・機能 bit・フィールドは追加しません。
+採用方式は **72 MHz の純 CCR1 捕捉**です。元の EXTI コールバックだけが通し番号と `micros()` を記録し、
+続いて CCR1 を読みます。TIM1 の更新/CC IRQ は 0 回/秒、DMA 転送は 0 回、他のタイマーは使用しません。
+HardwareTimer の setup が有効にする NVIC の UP/CC 入口も、初期化時に明示的に無効化・保留解除します。
+TI1 直接入力、立ち上がり、入力分周なし、フィルターなしとし、ISR に待機・整形・UART 出力を追加しません。
 
-`PpsIntervalTracker`、TIM-TP、NAV-PVT、UTC の tentative/confirmed 判定、Bridge の時刻は従来どおり
-`micros()` に依存します。ハードウェア証跡は確認条件に使いません。
-`micros()` の 32 bit 周回は既存の unsigned 差と Bridge の拡張処理に任せ、TIM1 とは独立させます。
-PPS 欠落は既存の判定に従い、復帰をハードウェア証跡だけで正常・confirmed に昇格させません。
-再初期化と GNSS 復旧では保留証跡・間隔履歴を破棄し、ISR の通し番号は維持します。
+`PpsSnapshot.hardware` の `capturedCounter` と `intervalModuloTicks` は **modulo 65536** の証跡です。
+公称 1 秒=72,000,000 tick の下位差は **41,472 tick** ですが、これを完全な PPS 間隔と解釈してはいけません。
+UIF は上位カウントに使わず、通常の取得では消去もしません。`micros()` から周回数を推測しません。
+完全な連続高分解能時刻、完全な PPS 間隔、TIM1 と `micros()` の時刻写像は生成しません。
+`intervalModuloValid` は連続した二つの CCR 証跡を表すだけで、正常な 1 PPS や UTC の確認を意味しません。
 
-| 項目 | この実装で言えること |
-|---|---|
-| 計数分解能 | 公称 1 µs。ナノ秒分解能ではない |
-| 捕捉ジッター | CCR1 は ISR 進入時刻に依存しない。入力同期回路・量子化・配線の影響は残り、実測していない |
-| PPS 間隔誤差 | 得られるのは下位差のみ。完全な秒間隔・発振器精度の測定結果ではない |
-| 最終 UTC 時刻誤差 | 従来の ISR 時刻、GNSS 設定・TIM-TP 証拠などに依存し、この機能による改善値は未証明 |
+CC1IF/CC1OF を読み出し前後に確認し、ES096 の CCR 読み出し競合には EXTI pending の再設定も検査します。
+捕捉なし・競合・overcapture・通し番号の欠落は間隔証跡を無効化し、再び二つの有効な連続サンプルを必要とします。
+設定、RCC、クロック有効状態、所有表、remap、NVIC が変わった場合は `unavailable` をラッチします。
+故障検出時に他者のレジスターや NVIC を書き換えず、元に戻すだけでは再開しません。
+明示的な `begin()` が必要です。再初期化・GNSS 復旧では古い保留証跡と間隔履歴を破棄します。
+`hardwareActive()` は現在の設定も検査します。`snapshot()` は新しい間隔証跡を作りません。
 
-導入済み STM32duino 2.4.0 の
-[HardwareTimer](https://github.com/stm32duino/Arduino_Core_STM32/blob/2.4.0/libraries/SrcWrapper/src/HardwareTimer.cpp)
-と HAL を確認しました。時基は SysTick、variant の Tone は TIM3、Servo は TIM4 です。
-現行プロジェクトは Tone、Servo、PWM、SoftwareSerial を使用していません。
-初期化では HardwareTimer の所有表、TIM1 クロックの既存使用、remap、入力ピン、分周可能性を検査します。
-競合時は TIM1 を上書きせず EXTI を継続し、証跡を無効とします。有効時は HardwareTimer 所有表に登録し、
-TIM1 全体を専有します。後から別の `HardwareTimer(TIM1)` や TIM1 の PWM を追加しないでください。
-無効ビルドでは TIM1 オブジェクト・初期化・捕捉処理を生成しません。
+次の捕捉より先に CCR1 を読む必要があります。単独の 1 PPS なら約 1 秒の猶予があり、
+その間に 910 µs の周回が複数回起きても下位値は保持されます。異常短パルスでは次のエッジが期限です。
+長い割り込み禁止による SysTick の経過欠落は既存の `micros()` の制限であり、本機能では修復しません。
+
+`PpsIntervalTracker`、TIM-TP、NAV-PVT、tentative/confirmed、Bridge 1.0 と Python API は従来の時刻系を維持します。
+高分解能証跡で UTC 状態を昇格させません。テキストの `DEBUG_LEVEL>=3` では主ループから
+`PPS_HW tick_hz=... unavailable=...` を出力します。利用不能時の `tick_hz` は 0 です。
+Binary Bridge にフィールド・フレームを追加しません。
+
+13.89 ns は公称計数分解能です。入力同期・量子化・電気特性・発振器偏差を含む実捕捉誤差、
+完全間隔の測定精度、最終 UTC 精度を保証する値ではありません。
+根拠、IRQ/DMA/級連の比較、性能見積もり、試験結果は [72 MHz TIM1 審査記録](tim1-pps-review.md)を参照してください。
 
 #### IWDG の動作と限界
 
@@ -240,24 +285,9 @@ IWDG はデバッガーのブレーク中も進む場合があります。`DBG_I
 ソフトウェア回帰・境界試験の手順は[テスト資料](../test/fixtures/README.md#tim1iwdg-のソフトウェア検証と実機境界)を参照してください。
 両機能とも実機検証未完了のため、本番での推奨設定は引き続き `0/0` です。
 
-2026-10-31 に STM32 platform 15.6.0、STM32duino 2.4.0、GCC 9.2.1、`-Os -flto`、
-`SOURCE_DATE_EPOCH=1793404800` で比較した値は次のとおりです。Flash は `.bin` 全体、
-RAM は `.data + .bss` で、heap/stack の予約約 1.5 KiB と実行時スタック最大値は含みません。
-
-| Bridge Binary + OLED | Flash（byte） | 静的 RAM（byte） | 既定からの増分（Flash / RAM） |
-|---|---:|---:|---:|
-| 両方無効 | 48,068 | 11,036 | 0 / 0 |
-| TIM1 のみ | 49,180 | 11,240 | +1,112 / +204 |
-| IWDG のみ | 48,176 | 11,036 | +108 / 0 |
-| 両方有効 | 49,264 | 11,236 | +1,196 / +200 |
-
-組合せによるリンカーの最適化・配置差があるため、増分は単純加算にはなりません。
-最小構成で両方有効は 44,524 / 10,692 byte、Explorer 復旧環境で両方有効は 50,204 / 11,264 byte でした。
-既存の既定・最小・Explorer・復旧の `0/0` は、変更前と `.bin` がすべて一致しました。
-標準の 19 ファームウェア環境と、上記 4 基本環境の組合せ・debug/loopback 用の追加 11 環境は
-合計 30 ビルドすべて成功しました。追加 11 環境の定義は検証時の一時設定で、常設環境は三つだけ増やしています。
-本変更後の native は 148 件、入口模擬は 51 シナリオ、Python は 142 件、ツールは 38 件が成功しました。
-ASan/UBSan も成功しています。実際の UART overrun・割り込み時間・リセットの評価はこの数値に含みません。
+2026-10-31 の 72 MHz 改修に伴う変更前後の Flash/静的 RAM、全環境の構築結果、
+ソフトウェア試験と実機試験の区別は [TIM1 審査記録の検証結果](tim1-pps-review.md#ソフトウェア検証と容量)を参照してください。
+静的 RAM に実行時 heap/stack 最大値は含みません。
 
 ### Explorer の回路照合と未使用回路
 

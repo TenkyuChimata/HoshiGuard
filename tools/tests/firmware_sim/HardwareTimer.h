@@ -12,6 +12,9 @@ class HardwareTimer {
     object_.handle.Instance=timer;
     HardwareTimer_Handle[TIMER1_INDEX]=&object_;
     RCC->APB2ENR |= RCC_APB2ENR_TIM1EN;
+    // 実際の STM32duino Base MSP の副作用を再現する。
+    sim::timerIrqEnabled[0]=sim::timerIrqEnabled[1]=true;
+    sim::timerIrqPending[0]=sim::timerIrqPending[1]=true;
   }
   void setMode(unsigned, int, int) { TIM1->CCMR1=TIM_CCMR1_CC1S_0; }
   TIM_HandleTypeDef *getHandle() { return &object_.handle; }

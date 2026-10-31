@@ -2,6 +2,7 @@
 #include <string.h>
 
 #include "config.h"
+#include "board_clock.h"
 #include "bridge_protocol.h"
 #include "bridge_transport.h"
 #include "dcr_dcx_decoder.h"
@@ -633,6 +634,9 @@ void updateStartupRecovery(uint32_t nowMs) {
 }
 
 void setup() {
+#if HOSHIGUARD_CLOCK_PROFILE
+  board_clock::guard();
+#endif
 #if HOSHIGUARD_STATUS_LED
   board::beginStatusLed();
 #endif
@@ -686,6 +690,9 @@ void setup() {
 }
 
 void loop() {
+#if HOSHIGUARD_CLOCK_PROFILE
+  board_clock::guard();
+#endif
   const uint32_t nowMs = millis();
 #if GNSS_UART_LOOPBACK_TEST
   updateLoopback(nowMs);
@@ -736,7 +743,9 @@ void loop() {
     DebugSerial.print(F("PPS seq=")); DebugSerial.print(ppsState.sequence);
     DebugSerial.print(F(" interval_us=")); DebugSerial.println(ppsState.intervalMicros);
 #if USE_TIM1_INPUT_CAPTURE
-    DebugSerial.print(F("PPS_HW ccr1=")); DebugSerial.print(ppsState.hardware.capturedCounter);
+    DebugSerial.print(F("PPS_HW tick_hz=")); DebugSerial.print(pps.hardwareActive() ? pps_hardware::kCounterHz : 0U);
+    DebugSerial.print(F(" unavailable=")); DebugSerial.print(ppsState.hardware.unavailable);
+    DebugSerial.print(F(" ccr1=")); DebugSerial.print(ppsState.hardware.capturedCounter);
     DebugSerial.print(F(" valid=")); DebugSerial.print(ppsState.hardware.captureValid);
     DebugSerial.print(F(" delta_mod65536=")); DebugSerial.print(ppsState.hardware.intervalModuloTicks);
     DebugSerial.print(F(" delta_valid=")); DebugSerial.println(ppsState.hardware.intervalModuloValid);

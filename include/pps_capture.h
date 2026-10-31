@@ -30,7 +30,7 @@ class PpsCapture {
   void snapshot(PpsSnapshot &snapshot) const;
   const PpsIntervalStats &healthStats() const { return intervalTracker_.stats(); }
 #if USE_TIM1_INPUT_CAPTURE
-  bool hardwareActive() const { return hardwareActive_; }
+  bool hardwareActive() const { return pps_hardware::tim1Active(); }
 #endif
 #if HOSHIGUARD_GNSS_RESET
   void discardHistory();
@@ -47,7 +47,6 @@ class PpsCapture {
   PpsIntervalTracker intervalTracker_;
 #if USE_TIM1_INPUT_CAPTURE
   volatile uint32_t isrHardwareSample_;
-  bool hardwareActive_;
   pps_hardware::IntervalEvidence hardwareIntervals_;
 #endif
 };
