@@ -49,6 +49,11 @@ pio run -e genericSTM32F103C8-bridge-binary -t upload
 STM32F103C8、MAX-M10S、アンテナ、安定した電源、上表の USART2・PPS・USART1 と共通 GND だけで使用でき、
 Explorer、OLED、EEPROM、LED、スイッチ、RESET 配線は不要です。SWD は PA13/PA14 と GND を使います。
 
+TIM1 の CCR1 による補助 PPS 証跡と、主ループの停滞を検出する IWDG は独立した任意機能です。
+どちらも既定では無効です。TIM1 証跡は既存の EXTI + `micros()` 時刻や UTC の確認条件を置換しません。
+有効化の方法、計数の限界、24 秒公称の IWDG と実機検証項目は
+[TIM1・IWDG の説明](docs/deployment.md#任意の-tim1-pps-証跡と-iwdg)を参照してください。
+
 AnyShake Explorer E-C111G Rev.20250613（MAX-M10S 換装）の補助機能は
 `pio run -e explorer-e-c111g` で選択できます。OPTIONS 第 1 位で起動時の OLED 表示を抑止します。
 GNSS の末段ハードリセットは既定で無効で、明示的な `explorer-e-c111g-recovery` 環境だけが使用します。

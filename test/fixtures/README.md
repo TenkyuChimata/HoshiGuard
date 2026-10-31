@@ -13,6 +13,8 @@ python3 tools/check_alert_support_matrix.py
 python3 tools/check_alert_traceability.py
 pio test -e native
 sh tools/run_native_sanitizers.sh
+pio run -e genericSTM32F103C8-bridge-binary -e generic-minimal -e explorer-e-c111g -e explorer-e-c111g-recovery
+pio run -e generic-tim1-validation -e generic-iwdg-validation -e generic-tim1-iwdg-validation
 sh tools/run_hardware_simulation.sh
 ```
 
@@ -29,6 +31,7 @@ sanitizer スクリプトは PlatformIO が取得した Unity を使います。
 | `test/test_{transport,gnss,time,logging,bridge}.cpp` | UBX/L1S/CRC、GNSS 設定・復旧、PPS/TIM-TP、書式・キュー、Bridge 1.0 |
 | `test/test_oled.cpp` | I2C の各送信段階・総期限、SSD1306 の画面更新・障害降格、状態の鮮度・文字境界、実 UBX と Bridge の併用。ハードウェア試験ではない |
 | `test/test_receiver_aux.cpp` | 状態 LED、起動 OLED スイッチ、起動専用復旧の期限・停止条件・周回・回数制限 |
+| `test/test_tim1_capture.cpp` | 製品と共通の CCR 読み出し・競合判定、UIF の非依存性、下位間隔・通し番号周回。レジスター境界は模擬 |
 | `tools/tests/firmware_sim/` | Arduino/HAL 境界の模擬で実際の setup/loop を実行。復旧後の設定検証・PPS/TIM-TP、実 UBX の再受信、Bridge 全フレーム検査、OLED 故障・抑止、無効 GPIO。実機試験ではない |
 | `python/tests/test_{transport,decoders,events,api,operations}.py` | ホスト検証、DCR-017/DCX-004、意味識別・状態、HTTP/WS・再起動、現行 diagnose |
 | `tools/tests/test_{capture,sessions,specification}.py` | 捕捉・秘匿化・生成器、実証跡・合成 STATUS 境界、仕様・公式期待値 |
@@ -36,6 +39,42 @@ sanitizer スクリプトは PlatformIO が取得した Unity を使います。
 
 同じ動作の断言は表駆動テストや `subTest` にまとめます。8/9 word、text capture、診断 NDJSON は
 現在も実装が受理する入力なので、その検証を維持します。過去の修正に由来する検証も機能別に配置します。
+
+### TIM1/IWDG のソフトウェア検証と実機境界
+
+`pio test -e native` と sanitizer は `tim1_capture.h` の製品コードを直接実行し、
+捕捉単体、連続 1 Hz、短間隔、欠落後の長間隔、下位カウント周回、UIF 同時発生・未処理、
+多数の連続周回、overcapture、CCR 読み出し競合と ES096 の EXTI pending、間隔証跡の無効化を確認します。
+秒間隔への周回数の復元は実装していないため、UIF から復元できたとする模擬試験は設けません。
+
+`tools/run_hardware_simulation.sh` は実際の `setup()/loop()`、`PpsCapture`、GNSS 設定・復旧、
+TIM-TP/Bridge を、Arduino とレジスターの境界だけ差し替えて実行します。
+TIM1/IWDG の 4 組合せで同じ合成入力・実 UBX fixture を使い、全 Bridge wire byte を `cmp` します。
+ビルド時刻による HELLO の差を避けるため `SOURCE_DATE_EPOCH` を固定します。
+再初期化、`micros()` の 32 bit 周回、主ループの取りこぼし、ハード復旧後の古い証跡の破棄、
+TIM1 の所有・既存クロック・remap・分周不可による EXTI 継続、APB2 タイマークロック 2 倍則も検査します。
+既存の `test_time.cpp` による NAV-PVT、TIM-TP、UTC の confirmed/tentative 回帰も維持します。
+
+IWDG は導入済み STM32duino の **実際の `IWatchdog.cpp`** をコンパイルし、LL 呼び出しだけを模擬します。
+公称 24 秒の PR/RLR、全 loop 完了ごとのリロード、長い GNSS 探索・設定再試行、ソフト復旧・RESET_N 復旧、
+連続 UART ノイズ、Bridge 背圧、OLED の NACK、ISR だけが動く主ループ停止、受信・送信・OLED 処理途中の停滞注入を検査します。
+停滞注入は境界から例外を投げてその回のリロードが行われないことを検査し、MCU の実際のデッドロック・リセットは再現しません。
+無効時は TIM1 初期化と IWDG 起動・リロードがなく、不正スイッチ・未対応 MCU はコンパイルで拒否されます。
+復帰原因診断は実装していないため、原因分類の成功は主張せず、起動時のフラグに触れないことを検査します。
+IWatchdog の検索先は `${PLATFORMIO_CORE_DIR:-$HOME/.platformio}/packages/framework-arduinoststm32` です。
+上記の firmware build を先に実行してフレームワークを導入してください。
+
+標準の三つの `generic-*-validation` に加え、最小構成・Explorer・復旧環境でも同じ二つのフラグを組み合わせてビルドします。
+これらはホスト上のソフトウェア検証であり、以下は実機試験として残ります。
+
+- PA8 の実 PPS と信号発生器を使った CCR1 のラッチ、周回近傍、短パルス・欠落・復帰、overcapture の確認。
+- EXTI の既存時刻と CCR1 の位相、同期回路・入力波形・発振器誤差を含むジッター測定。UTC 誤差は別に評価する。
+- 高負荷の GNSS UART と Bridge を同時に動かし、ISR 時間、USART2 ORE、受信欠落、Bridge の遅延と最大 loop 時間を比較する。
+- IWDG を有効にした実 MCU で主ループを停止し、LSI の条件差を含めて実際のリセットと再起動・受信再開を確認する。
+- GNSS 無信号、設定失敗、OLED/I2C 故障、GNSS の正常な復旧、ホスト切断で誤リセットしない長期試験。
+- 電源投入・再初期化・SWD ブレークポイント、option bytes、通常基板と Explorer の両方での動作確認。
+
+実機検証が済むまで両機能の本番推奨は無効です。ビルド成功や sanitizer の成功を実機試験完了と扱いません。
 
 ## 同梱する証跡
 

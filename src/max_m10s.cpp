@@ -177,7 +177,13 @@ void MaxM10s::setBaud(uint32_t baud) {
   if (shouldEndSerialBeforeBegin(serialStarted_)) serial_.end();
   serial_.begin(baud);
   serialStarted_ = true;
+#if HOSHIGUARD_IWDG
+  // baud 再設定中も連続ノイズで主ループを占有し続けない。
+  for (size_t drained = 0U; drained < 256U && serial_.available() > 0; ++drained)
+    (void)serial_.read();
+#else
   while (serial_.available() > 0) (void)serial_.read();
+#endif
   baudRate_ = baud;
   parserResetRequested_ = true;
 }

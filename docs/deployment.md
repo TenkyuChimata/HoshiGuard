@@ -106,6 +106,159 @@ OLED 以外は未指定なら 0 です。継承元ですでに指定されてい
 OLED 無効時は表示スイッチも読まず、I2C1 を初期化しません。LED・復旧の無効時も対応する状態・GPIO 操作を生成しません。
 GPIO は `board_support.cpp`、時刻依存の補助処理は `receiver_aux.cpp` に分離し、Bridge 1.0 と UART baud は変更しません。
 
+### 任意の TIM1 PPS 証跡と IWDG
+
+STM32F103C8T6 と MAX-M10S のみで使用できる実機検証用の機能です。Explorer の回路は使いません。
+`hardware_options.h` の `USE_TIM1_INPUT_CAPTURE` と `HOSHIGUARD_IWDG` をそれぞれ `0` / `1` で指定します。
+未指定は両方とも `0` で、既存の全環境はその既定値を維持します。TIM1 用の別名スイッチは設けません。
+
+| ビルド例 | TIM1 証跡 | IWDG |
+|---|---:|---:|
+| `genericSTM32F103C8-bridge-binary` / `generic-minimal` | 0 | 0 |
+| `generic-tim1-validation` | 1 | 0 |
+| `generic-iwdg-validation` | 0 | 1 |
+| `generic-tim1-iwdg-validation` | 1 | 1 |
+
+```sh
+pio run -e generic-tim1-validation
+pio run -e generic-iwdg-validation
+pio run -e generic-tim1-iwdg-validation
+```
+
+これら三つは既存の Bridge Binary + OLED 環境を継承します。OLED は必須ではありません。
+独自環境では `generic-minimal`、`explorer-e-c111g`、`explorer-e-c111g-recovery` などを継承し、
+その `build_flags` に `-D USE_TIM1_INPUT_CAPTURE=1`、`-D HOSHIGUARD_IWDG=1` を必要な分だけ追加します。
+無効化は各フラグを `0` に戻すか削除して再ビルドします。同一フラグを重複指定しないでください。
+不正なスイッチ値と未対応 MCU はコンパイル時に拒否します。切替はビルド時のみです。
+
+#### TIM1 の動作と限界
+
+PA8/TIM1_CH1 の上昇エッジを、TI1 直接入力、立ち上がり極性、入力分周なし、デジタルフィルターなしで
+**ハードウェア CCR1 にラッチ**します。元の EXTI コールバックだけが PPS の通し番号を増やし、
+最初に従来どおり `micros()` を読み、続いてラッチ済み CCR1 と状態を短く記録します。
+二つの ISR が同じ PPS を数える方式ではありません。TIM1 の割り込みと DMA は使いません。
+ISR 内で整形、ログ、UART 送信、I2C、間隔計算は行いません。
+
+APB2 のタイマークロックを確認して 1 MHz に整数分周します。標準 72 MHz では PSC=71、ARR=65535、
+1 tick=1 µs、周回周期=65.536 ms です。APB2 分周時のタイマークロック 2 倍則も適用します。
+上位カウントは保持せず、CCR1 と前後の差を **modulo 65536** の証跡として保持します。
+1 Hz の 1,000,000 tick はこの差では 16,960 になります。これを 16,960 µs の PPS 間隔と解釈してはいけません。
+完全な間隔を得るための周回数の推定や、CCR1 から `micros()` への変換は実装していません。
+
+UIF は捕捉値の上位ビットに使わず、通常の読み出しでは消去もしません。
+CCR1 と UIF の同時発生、更新処理の遅延、複数の連続周回は下位値の解釈を変えません。
+周回ごとのサービス期限もなく、TIM1 更新割り込みは **0 回/秒**です。
+これにより 1 MHz で約 15.26 回/秒の更新 IRQ、または 72 MHz で約 1,099 回/秒の更新 IRQ を追加せずに済みます。
+追加負荷は元の PPS ISR の SR 2 回・CCR1 最大 1 回・EXTI pending 最大 1 回の読み出しと状態保存です。
+競合時だけ CC1E を一時停止し、CC1IF/CC1OF を rc_w0 で消去して再開します。実行時間の実測値はありません。
+
+CCR1 読み出し前後の CC1OF と、読み出し後の CC1IF を検査します。
+[ES096 の Missing capture flag / Overcapture detected too early](https://www.st.com/resource/en/errata_sheet/cd00190234-stm32f101x8-b-stm32f102x8-b-and-stm32f103x8-b-medium-density-device-limitations-stmicroelectronics.pdf)
+にも対応し、EXTI コールバック前に消去された PA8 pending が再設定されていれば競合として捨てます。
+真の overcapture と勘違いの可能性があるフラグを区別して精度を装うことはせず、どちらも証跡を無効化します。
+捕捉なし、overcapture、読み出し競合、主ループが複数の PPS をまとめて消費した場合は、
+連続したハードウェア間隔の証拠にしません。エラー後は改めて二つの有効な連続サンプルが必要です。
+
+単一の CCR1 を正しい一つのエッジに対応させるには、次の上昇エッジより前に読み終える必要があります。
+1 Hz 入力なら遅延は **1 秒未満**が必要で、短い異常パルス列ではその短い間隔が上限です。
+これは保存値を失わないための条件であり、UTC 時刻の許容誤差ではありません。
+その間に 65.536 ms の周回が何度起きても下位証跡は失いません。上位周回数は常に不明です。
+次のエッジまで ISR が動かない場合は捕捉を救済せず、検出した歧義を無効化します。
+長い全割り込み禁止では、従来の SysTick に基づく `micros()` 自体にも制限があります。
+1 ms 周期の SysTick を複数回未処理にすると経過時間を失い得ます。この機能はその制限を除去しません。
+
+`PpsSnapshot.hardware` には `capturedCounter`、`intervalModuloTicks` と個別の有効性・競合フラグが入ります。
+対応付けは同じ EXTI サンプルの `sequence` に限定し、`edgeMicros` は変更しません。
+`snapshot()` は新しい間隔証跡を作りません。デバッガーでは `hardwareActive()` で初期化結果を確認できます。
+テキスト診断の `DEBUG_LEVEL>=3` では `PPS_HW` を主ループから出力します。
+Binary Bridge では引き続き全テキストを抑止し、証跡のためのフレーム・機能 bit・フィールドは追加しません。
+
+`PpsIntervalTracker`、TIM-TP、NAV-PVT、UTC の tentative/confirmed 判定、Bridge の時刻は従来どおり
+`micros()` に依存します。ハードウェア証跡は確認条件に使いません。
+`micros()` の 32 bit 周回は既存の unsigned 差と Bridge の拡張処理に任せ、TIM1 とは独立させます。
+PPS 欠落は既存の判定に従い、復帰をハードウェア証跡だけで正常・confirmed に昇格させません。
+再初期化と GNSS 復旧では保留証跡・間隔履歴を破棄し、ISR の通し番号は維持します。
+
+| 項目 | この実装で言えること |
+|---|---|
+| 計数分解能 | 公称 1 µs。ナノ秒分解能ではない |
+| 捕捉ジッター | CCR1 は ISR 進入時刻に依存しない。入力同期回路・量子化・配線の影響は残り、実測していない |
+| PPS 間隔誤差 | 得られるのは下位差のみ。完全な秒間隔・発振器精度の測定結果ではない |
+| 最終 UTC 時刻誤差 | 従来の ISR 時刻、GNSS 設定・TIM-TP 証拠などに依存し、この機能による改善値は未証明 |
+
+導入済み STM32duino 2.4.0 の
+[HardwareTimer](https://github.com/stm32duino/Arduino_Core_STM32/blob/2.4.0/libraries/SrcWrapper/src/HardwareTimer.cpp)
+と HAL を確認しました。時基は SysTick、variant の Tone は TIM3、Servo は TIM4 です。
+現行プロジェクトは Tone、Servo、PWM、SoftwareSerial を使用していません。
+初期化では HardwareTimer の所有表、TIM1 クロックの既存使用、remap、入力ピン、分周可能性を検査します。
+競合時は TIM1 を上書きせず EXTI を継続し、証跡を無効とします。有効時は HardwareTimer 所有表に登録し、
+TIM1 全体を専有します。後から別の `HardwareTimer(TIM1)` や TIM1 の PWM を追加しないでください。
+無効ビルドでは TIM1 オブジェクト・初期化・捕捉処理を生成しません。
+
+#### IWDG の動作と限界
+
+同梱の
+[STM32duino IWatchdog 1.0.0](https://github.com/stm32duino/Arduino_Core_STM32/blob/2.4.0/libraries/IWatchdog/src/IWatchdog.cpp)
+を使用します。LSI の準備、0xCCCC による起動、0x5555 による書込許可、PR/RLR 更新待ち、
+0xAAAA によるリロードをライブラリーに任せ、別のレジスタードライバーやタスク管理機構は設けません。
+`setup()` 末尾で `begin(24000000)` を一度だけ呼びます。公称 `LSI_VALUE=40000` 以外は拒否します。
+設定は固定 24 秒公称、PR=6（/256）、RLR=3749 です。
+[DS5319 の LSI 特性](https://www.st.com/resource/en/datasheet/stm32f103c8.pdf)の 30–60 kHz を用いると、
+`256 × (3749+1) / fLSI` によりおよそ 16–32 秒となります。正確な 24 秒タイマーではありません。
+起動・更新のクロック同期時間もあるため、この式を測定済みのリセット期限とは扱いません。
+
+GNSS 初期化はその時点で完了を待ちません。MON-VER 900 ms、ACK 1,200 ms、baud 切替前後各 100 ms、
+signal restart 600 ms、SFRBX 待機 15 秒、再試行、復旧の 30/120 秒、RESET 保持 10 ms・解除後 1 秒は
+いずれも複数の loop にまたがる状態機械です。これらの待機中も主処理が進めばリロードします。
+UART の設定送信は有限長の UBX、診断は固定長のバッファー・キュー、Bridge pump は空き容量内に制限されます。
+OLED は 1 段階ずつ進み、I2C の 3 ms は非同期の総期限です。これらに秒単位の通常ブロッキング待ちはありません。
+実機での最大 loop 時間を測ったものではなく、有効化前には最短側の約 16 秒に十分な余裕があることを確認してください。
+
+リロードは **PPS、UART 読出し、GNSS 更新・任意の復旧、診断、Bridge/ログ出力、OLED/LED がすべて戻った
+loop の末尾だけ**で行います。ISR からはリロードしません。GNSS が未測位、L1S・通報・PPS が来ない、
+OLED 欠落・I2C エラー、ホスト未接続などはリロードを止める理由にしません。
+有効時だけ、主ループと baud 再設定での UART 排出をそれぞれ最大 256 byte/回に制限し、
+連続受信でも後段処理を飢餓させません。正常に戻る一つの機能だけでリロードを繰り返す処理はありません。
+loopback 診断環境では、その診断処理とログ pump の完了後にリロードします。
+
+MCU はリロードが途絶するとリセットされ、起動から GNSS 設定と Bridge セッションを作り直します。
+送信途中・未保存のデータは失われ得ます。設定完了前の短い `setup()` 内の停滞は監視対象外です。
+ソフトウェア起動後の IWDG は停止できません。既存の option bytes を書き換えず、ソフトウェア起動を前提とします。
+ハードウェア起動に設定済みの基板では、`HOSHIGUARD_IWDG=0` でもハードウェアの動作を停止できません。
+ライブラリーの LSI 準備待ちは起動前であり、LSI 自体の故障をソフトウェアで救済する保証もありません。
+このファームウェアは Stop/Standby を使わず、通常の APB クロックは LSI より十分速いため、ES096 の低速 APB/
+Stop 中の PR/RLR 更新制限に該当する省電力構成を追加しないでください。
+
+IWDG はデバッガーのブレーク中も進む場合があります。`DBG_IWDG_STOP` はデバッガー側の設定で動作が変わり、
+このファームウェアは自動停止を設定しません。通常のブレークポイント作業では IWDG を無効にしたビルドを使ってください。
+復帰原因の診断は追加していません。起動フラグを消去・再解釈せず、電源投入・ソフトウェア・IWDG の原因を
+推測して出力しません。EEPROM などへの書き込み、Bridge 1.0 の変更もありません。
+
+判断の基にした公式資料は
+[RM0008 の TIM1 入力捕捉・状態レジスター・IWDG](https://www.st.com/resource/en/reference_manual/rm0008-stm32f103xx-advanced-armbased-32bit-mcus-stmicroelectronics.pdf)、
+上記 DS5319、ES096 と、実際にビルドに使用した STM32duino/HAL ソースです。
+ソフトウェア回帰・境界試験の手順は[テスト資料](../test/fixtures/README.md#tim1iwdg-のソフトウェア検証と実機境界)を参照してください。
+両機能とも実機検証未完了のため、本番での推奨設定は引き続き `0/0` です。
+
+2026-10-31 に STM32 platform 15.6.0、STM32duino 2.4.0、GCC 9.2.1、`-Os -flto`、
+`SOURCE_DATE_EPOCH=1793404800` で比較した値は次のとおりです。Flash は `.bin` 全体、
+RAM は `.data + .bss` で、heap/stack の予約約 1.5 KiB と実行時スタック最大値は含みません。
+
+| Bridge Binary + OLED | Flash（byte） | 静的 RAM（byte） | 既定からの増分（Flash / RAM） |
+|---|---:|---:|---:|
+| 両方無効 | 48,068 | 11,036 | 0 / 0 |
+| TIM1 のみ | 49,180 | 11,240 | +1,112 / +204 |
+| IWDG のみ | 48,176 | 11,036 | +108 / 0 |
+| 両方有効 | 49,264 | 11,236 | +1,196 / +200 |
+
+組合せによるリンカーの最適化・配置差があるため、増分は単純加算にはなりません。
+最小構成で両方有効は 44,524 / 10,692 byte、Explorer 復旧環境で両方有効は 50,204 / 11,264 byte でした。
+既存の既定・最小・Explorer・復旧の `0/0` は、変更前と `.bin` がすべて一致しました。
+標準の 19 ファームウェア環境と、上記 4 基本環境の組合せ・debug/loopback 用の追加 11 環境は
+合計 30 ビルドすべて成功しました。追加 11 環境の定義は検証時の一時設定で、常設環境は三つだけ増やしています。
+本変更後の native は 148 件、入口模擬は 51 シナリオ、Python は 142 件、ツールは 38 件が成功しました。
+ASan/UBSan も成功しています。実際の UART overrun・割り込み時間・リセットの評価はこの数値に含みません。
+
 ### Explorer の回路照合と未使用回路
 
 確認対象は [2025-06-13 の固定コミット](https://github.com/anyshake/explorer/tree/4daca963e1d449a75016fa40e871b718bce5e7c7)、

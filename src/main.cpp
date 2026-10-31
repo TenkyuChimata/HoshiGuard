@@ -21,6 +21,11 @@
 #include "ubx_parser.h"
 #include "board_support.h"
 #include "receiver_aux.h"
+#if HOSHIGUARD_IWDG
+#include <IWatchdog.h>
+static_assert(IS_IWDG_TIMEOUT(24000000UL), "IWDG の 24 秒設定がライブラリーの範囲外です");
+static_assert(LSI_VALUE == 40000UL, "IWDG の公称計算には STM32F103 の LSI_VALUE=40000 が必要です");
+#endif
 #if HOSHIGUARD_OLED
 #include "oled_stm32.h"
 #include "status_display.h"
@@ -657,6 +662,9 @@ void setup() {
   DebugSerial.print(F(" written=")); DebugSerial.println(written);
   loopbackDeadlineMs = millis() + 500U;
   if (written != loopbackExpectedLength) finishLoopback(false);
+#if HOSHIGUARD_IWDG
+  IWatchdog.begin(24000000UL);
+#endif
   return;
 #endif
   const StartupHooks hooks = {0, emitStartupMetadata, beginStartupPps,
@@ -671,6 +679,10 @@ void setup() {
 #if BRIDGE_BINARY_MODE
   (void)bridgeTransport.enqueueHello(extendedMicros(), 0U);
 #endif
+#if HOSHIGUARD_IWDG
+  // 非同期 GNSS 初期化の完了を待たず開始する。40 kHz 公称で 24 秒、LSI 30–60 kHz では 16–32 秒。
+  IWatchdog.begin(24000000UL);
+#endif
 }
 
 void loop() {
@@ -678,6 +690,9 @@ void loop() {
 #if GNSS_UART_LOOPBACK_TEST
   updateLoopback(nowMs);
   DebugSerial.pump();
+#if HOSHIGUARD_IWDG
+  IWatchdog.reload();
+#endif
   return;
 #endif
   if (gnss.consumeParserResetRequest()) ubx.resetStreamState();
@@ -720,12 +735,29 @@ void loop() {
 #if DEBUG_LEVEL >= 3
     DebugSerial.print(F("PPS seq=")); DebugSerial.print(ppsState.sequence);
     DebugSerial.print(F(" interval_us=")); DebugSerial.println(ppsState.intervalMicros);
+#if USE_TIM1_INPUT_CAPTURE
+    DebugSerial.print(F("PPS_HW ccr1=")); DebugSerial.print(ppsState.hardware.capturedCounter);
+    DebugSerial.print(F(" valid=")); DebugSerial.print(ppsState.hardware.captureValid);
+    DebugSerial.print(F(" delta_mod65536=")); DebugSerial.print(ppsState.hardware.intervalModuloTicks);
+    DebugSerial.print(F(" delta_valid=")); DebugSerial.println(ppsState.hardware.intervalModuloValid);
+#endif
 #endif
   }
-  while (Serial2.available() > 0) {
+#if HOSHIGUARD_IWDG
+  // 連続受信でも後段の GNSS・Bridge・OLED 処理を飢餓させない。
+  size_t receivedThisPass = 0U;
+#endif
+  while (Serial2.available() > 0
+#if HOSHIGUARD_IWDG
+         && receivedThisPass < 256U
+#endif
+         ) {
     UbxPacketView packet;
     const int incoming = Serial2.read();
     if (incoming < 0) break;
+#if HOSHIGUARD_IWDG
+    ++receivedThisPass;
+#endif
     const uint8_t byte = static_cast<uint8_t>(incoming);
 #if HOSHIGUARD_GNSS_RESET
     recoveryRxBytes = true;
@@ -791,5 +823,9 @@ void loop() {
                           gnss.lastError() != GNSS_ERR_NO_SFRBX;
   board::setStatusLed(statusLed.tick(nowMs, initializing, state == GnssInitState::Failed,
                                     configError));
+#endif
+#if HOSHIGUARD_IWDG
+  // 全処理が戻った場合だけ更新する。受信品質や出力成功を条件にしない。ISR からは呼ばない。
+  IWatchdog.reload();
 #endif
 }

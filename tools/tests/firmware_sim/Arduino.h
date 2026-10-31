@@ -12,6 +12,7 @@ enum { PA2=2, PA3=3, PA8=8, PA9=9, PA10=10, PA15=15, PB12=28 };
 enum { LOW=0, HIGH=1, INPUT=0, INPUT_PULLDOWN=2, RISING=3 };
 enum { HEX=16 };
 enum { GPIO_PIN_RESET=0, GPIO_PIN_SET=1, GPIO_MODE_OUTPUT_OD=4, GPIO_SPEED_FREQ_LOW=2 };
+static const uint32_t GPIO_PIN_8 = 1U << 8;
 static const uint32_t GPIO_PIN_13 = 1U << 13;
 static const uint32_t GPIO_PIN_15 = 1U << 15;
 struct GPIO_TypeDef { unsigned port; };
@@ -23,6 +24,9 @@ extern int modes[48], levels[48];
 extern unsigned swdOnly, resetAssertions, resetReleases;
 extern void (*ppsInterrupt)();
 extern void (*gnssWrite)(const uint8_t *, size_t);
+extern bool continuousRx, stallRx, stallTx, stallOled;
+extern unsigned rxReads;
+struct Stalled {};
 }
 #define GPIOA (&sim::ports[0])
 #define GPIOC (&sim::ports[2])
@@ -36,6 +40,7 @@ inline void pinMode(int pin, int mode) { sim::modes[pin] = mode; }
 inline int digitalRead(int pin) { return sim::levels[pin]; }
 inline int digitalPinToInterrupt(int pin) { return pin; }
 inline void attachInterrupt(int, void (*handler)(), int) { sim::ppsInterrupt = handler; }
+inline void detachInterrupt(int) { sim::ppsInterrupt = 0; }
 inline void noInterrupts() {}
 inline void interrupts() {}
 inline void HAL_GPIO_Init(GPIO_TypeDef *port, GPIO_InitTypeDef *pin) {
@@ -75,9 +80,9 @@ class HardwareSerial : public Print {
   HardwareSerial(int=0, int=0) : baud(0U), beginCount(0U), room(64) {}
   void begin(uint32_t value) { baud=value; ++beginCount; }
   void end() { rx.clear(); }
-  int available() const { return static_cast<int>(rx.size()); }
+  int available() const;
   int availableForWrite() const { return room; }
-  int read() { if (rx.empty()) return -1; int value=rx.front(); rx.pop_front(); return value; }
+  int read();
   size_t write(uint8_t value) override { return write(&value, 1U); }
   size_t write(const uint8_t *data, size_t size) override;
   uint32_t baud;
@@ -87,3 +92,55 @@ class HardwareSerial : public Print {
   std::vector<uint8_t> tx;
 };
 extern HardwareSerial Serial2;
+
+// TIM1/IWDG はレジスターの副作用だけを模擬する。実時間・電気特性の証明には使わない。
+struct SimStatus {
+  uint32_t bits = 0U;
+  operator uint32_t() const { return bits; }
+  SimStatus &operator=(uint32_t value) { bits &= value; return *this; }
+};
+struct SimCapture {
+  uint16_t bits = 0U;
+  operator uint32_t() const;
+};
+struct TIM_TypeDef {
+  uint32_t CR1=0U, CCER=0U, DIER=0U, SMCR=0U, PSC=0U, ARR=0U, RCR=0U, CNT=0U, EGR=0U, CCMR1=0U;
+  SimStatus SR;
+  SimCapture CCR1;
+};
+struct SimRcc { uint32_t APB2ENR=0U, CFGR=0U, CSR=0U; };
+struct SimAfio { uint32_t MAPR=0U; };
+struct SimExti { uint32_t PR=0U; };
+struct SimIwdg { uint32_t prescaler=0U, reload=0U, lastFeed=0U; unsigned feeds=0U; bool enabled=false; };
+namespace sim {
+extern TIM_TypeDef tim1;
+extern SimRcc rcc;
+extern SimAfio afio;
+extern SimExti exti;
+extern SimIwdg iwdg;
+extern uint32_t pclk2;
+extern unsigned timerSetups;
+extern bool lsiEnabled;
+}
+#define TIM1 (&sim::tim1)
+#define RCC (&sim::rcc)
+#define AFIO (&sim::afio)
+#define EXTI (&sim::exti)
+#define IWDG (&sim::iwdg)
+#define RCC_APB2ENR_TIM1EN (1U << 11)
+#define RCC_CFGR_PPRE2 (7U << 11)
+#define RCC_CFGR_PPRE2_2 (4U << 11)
+#define AFIO_MAPR_TIM1_REMAP (3U << 6)
+#define TIM_SR_CC1IF (1U << 1)
+#define TIM_SR_CC1OF (1U << 9)
+#define TIM_CCER_CC1E 1U
+#define TIM_CR1_URS 4U
+#define TIM_CR1_CEN 1U
+#define TIM_EGR_UG 1U
+#define TIM_CCMR1_CC1S_0 1U
+#define IWDG_RLR_RL 4095U
+#define LSI_VALUE 40000U
+#define UNUSED(value) (void)(value)
+inline uint32_t HAL_RCC_GetPCLK2Freq() { return sim::pclk2; }
+inline int digitalPinToPinName(int pin) { return pin; }
+static const int PA_8=PA8;

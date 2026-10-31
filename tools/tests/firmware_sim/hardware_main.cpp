@@ -1,6 +1,8 @@
 #include "Arduino.h"
 #include <assert.h>
+#include <stdlib.h>
 #include <string.h>
+#include "HardwareTimer.h"
 
 namespace sim {
 uint32_t nowMs=0U;
@@ -9,9 +11,34 @@ int modes[48] = {}, levels[48] = {};
 unsigned swdOnly=0U, resetAssertions=0U, resetReleases=0U;
 void (*ppsInterrupt)() = 0;
 void (*gnssWrite)(const uint8_t *, size_t) = 0;
+bool continuousRx=false, stallRx=false, stallTx=false, stallOled=false;
+unsigned rxReads=0U;
+TIM_TypeDef tim1;
+SimRcc rcc;
+SimAfio afio;
+SimExti exti;
+SimIwdg iwdg;
+uint32_t pclk2=72000000U;
+unsigned timerSetups=0U;
+bool lsiEnabled=false;
 }
+timerObj_t *HardwareTimer_Handle[TIMER_NUM] = {};
+SimCapture::operator uint32_t() const { TIM1->SR.bits &= ~TIM_SR_CC1IF; return bits; }
 HardwareSerial Serial2;
+int HardwareSerial::available() const {
+  return this==&Serial2 && sim::continuousRx ? 1 : static_cast<int>(rx.size());
+}
+int HardwareSerial::read() {
+  if (this==&Serial2) {
+    if (sim::stallRx) throw sim::Stalled();
+    ++sim::rxReads;
+    if (sim::continuousRx && rx.empty()) return 0x55;
+  }
+  if (rx.empty()) return -1;
+  const int value=rx.front(); rx.pop_front(); return value;
+}
 size_t HardwareSerial::write(const uint8_t *data, size_t size) {
+  if (sim::stallTx) throw sim::Stalled();
   tx.insert(tx.end(), data, data+size);
   if (this == &Serial2 && sim::gnssWrite) sim::gnssWrite(data, size);
   return size;
@@ -26,14 +53,39 @@ namespace {
 unsigned oledBegins=0U;
 bool beginBus(void *) { ++oledBegins; return true; }
 bool startBus(void *, const uint8_t *, size_t, uint32_t) { return true; }
-OledTransfer pollBus(void *, uint32_t) { return OledTransfer::Failed; }
+OledTransfer pollBus(void *, uint32_t) {
+  if (sim::stallOled) throw sim::Stalled();
+  return OledTransfer::Failed;
+}
 void endBus(void *) {}
 }
 oled::Bus stm32OledBus() { return {0, beginBus, startBus, pollBus, endBus}; }
 #endif
 
 namespace {
-void step(uint32_t now) { sim::nowMs=now; loop(); }
+void step(uint32_t now) {
+  sim::nowMs=now;
+  const unsigned feeds=sim::iwdg.feeds;
+  loop();
+#if HOSHIGUARD_IWDG
+  assert(sim::iwdg.feeds==feeds+1U);
+  assert(sim::iwdg.lastFeed==now);
+#else
+  assert(sim::iwdg.feeds==feeds);
+#endif
+}
+void latchPps(uint16_t counter) {
+  if ((TIM1->CCER & TIM_CCER_CC1E) == 0U) return;
+  if ((TIM1->SR.bits & TIM_SR_CC1IF) != 0U) TIM1->SR.bits |= TIM_SR_CC1OF;
+  TIM1->CCR1.bits=counter;
+  TIM1->SR.bits |= TIM_SR_CC1IF;
+}
+void pulse() {
+  latchPps(static_cast<uint16_t>(micros()));
+  EXTI->PR=0U; // HAL_GPIO_EXTI_IRQHandler はコールバック前に消去する。
+  assert(sim::ppsInterrupt);
+  sim::ppsInterrupt();
+}
 #if HOSHIGUARD_GNSS_RESET
 void inject(uint8_t cls, uint8_t id, const uint8_t *payload, uint16_t length) {
   uint8_t bytes[264];
@@ -76,13 +128,20 @@ unsigned validateBridge() {
   }
   assert(start==DebugUart.tx.size());
   assert(frames>0U);
+  const char *wirePath=getenv("HOSHIGUARD_SIM_WIRE");
+  if (wirePath) {
+    FILE *wire=fopen(wirePath,"wb");
+    assert(wire);
+    assert(fwrite(DebugUart.tx.data(),1U,DebugUart.tx.size(),wire)==DebugUart.tx.size());
+    assert(fclose(wire)==0);
+  }
   return l1s;
 }
 void normalReception(bool ppsOnly) {
   setup();
   if (ppsOnly) {
     sim::nowMs=100U;
-    sim::ppsInterrupt();
+    pulse();
   } else {
     // 実 fixture の UBX は、有効な受信実績として自動復旧を中止させる。
     Serial2.rx.insert(Serial2.rx.end(),kRealFixtures[0].data,kRealFixtures[0].data+kRealFixtures[0].length);
@@ -109,7 +168,7 @@ void silentRecovery() {
   assert(sim::levels[PA15]==LOW);
   assert(!utc.valid && timeSync.newestPps()==0 && !timeSync.timeGridKnown());
   sim::nowMs=150009U;
-  sim::ppsInterrupt(); // 保持中の PPS 様ノイズを次の時刻 epoch に持ち越さない。
+  pulse(); // 保持中の PPS 様ノイズを次の時刻 epoch に持ち越さない。
   step(150009U);
   assert(sim::levels[PA15]==LOW);
   step(150010U);
@@ -132,9 +191,12 @@ void silentRecovery() {
   const RealFixture &fixture=kRealFixtures[0];
   Serial2.rx.insert(Serial2.rx.end(),fixture.data,fixture.data+fixture.length);
   sim::nowMs=170000U;
-  sim::ppsInterrupt();
+  pulse();
   step(170000U);
   assert(ppsState.sequence==2U); // ISR 通し番号は保持する。
+#if USE_TIM1_INPUT_CAPTURE
+  assert(ppsState.hardware.captureValid && !ppsState.hardware.intervalModuloValid);
+#endif
   for (uint32_t now=170001U;now<170100U;++now) step(now);
   // 合成 TIM-TP と実入口の PPS を組み合わせ、復旧後に改めて 3 回の一致を要求する。
   for (uint32_t i=1U;i<=3U;++i) {
@@ -146,7 +208,7 @@ void silentRecovery() {
     inject(0x0DU,0x01U,timing,sizeof(timing));
     step(170000U+i*1000U-100U);
     sim::nowMs=170000U+i*1000U;
-    sim::ppsInterrupt();
+    pulse();
     step(sim::nowMs);
     if (i<3U) assert(timeSync.quality()!=TimeQuality::UtcPpsConfirmed);
   }
@@ -156,10 +218,154 @@ void silentRecovery() {
   assert(validateBridge()>0U);
 }
 #endif
+#if USE_TIM1_INPUT_CAPTURE
+void captureEvidence() {
+  setup();
+  assert(pps.hardwareActive());
+  assert(TIM1->PSC==71U && TIM1->ARR==65535U && TIM1->DIER==0U);
+  PpsSnapshot out = {};
+  assert(!pps.update(out));
+  const uint32_t times[] = {1000U,2000U,3000U,6000U,6001U,7001U,4294000U,4295000U};
+  uint32_t previous=0U;
+  unsigned sequence=0U;
+  uint16_t previousCounter=0U;
+  for (uint32_t now : times) {
+    sim::nowMs=now;
+    const uint32_t timestamp=micros();
+    const uint16_t counter=static_cast<uint16_t>(timestamp-17U);
+    latchPps(counter);
+    TIM1->SR.bits |= 1U; // 更新未処理・同時発生を含めて UIF は保持する。
+    sim::ppsInterrupt();
+    assert(pps.update(out));
+    assert(out.sequence==++sequence && out.edgeMicros==timestamp);
+    assert(out.hardware.captureValid && out.hardware.capturedCounter==counter);
+    assert(out.hardware.intervalModuloValid==(sequence>1U));
+    if (sequence>1U) {
+      assert(out.intervalMicros==timestamp-previous);
+      assert(out.hardware.intervalModuloTicks==static_cast<uint16_t>(counter-previousCounter));
+    }
+    assert(TIM1->SR.bits==1U);
+    assert(!pps.update(out));
+    previous=timestamp;
+    previousCounter=counter;
+  }
+  assert(out.lostCount>0U && out.anomalyCount>0U);
+  // 二つの捕捉が ISR より先行した場合、時刻経路の動作は維持し証跡だけ無効化する。
+  latchPps(5U); latchPps(6U);
+  sim::ppsInterrupt();
+  assert(pps.update(out) && out.sequence==++sequence);
+  assert(out.edgeMicros==micros() && !out.hardware.captureValid && out.hardware.overcapture);
+  assert(TIM1->SR.bits==1U);
+  latchPps(7U); sim::ppsInterrupt();
+  assert(pps.update(out) && !out.hardware.intervalModuloValid);
+  ++sequence;
+  // ES096: CCR 読み出しと競合したエッジの EXTI pending が残る場合。
+  latchPps(8U); EXTI->PR=GPIO_PIN_8; sim::ppsInterrupt();
+  assert(pps.update(out) && out.hardware.readRace && !out.hardware.captureValid);
+  EXTI->PR=0U;
+  ++sequence;
+  // 主ループが二つの ISR をまとめて読んだ場合も、間隔の連続性を捏造しない。
+  pulse(); pulse();
+  assert(pps.update(out) && out.sequence==sequence+2U && !out.hardware.intervalModuloValid);
+  sequence=out.sequence;
+  pulse();
+  pps.begin();
+  assert(!pps.update(out) && sim::timerSetups==1U);
+  pulse();
+  assert(pps.update(out) && out.sequence==sequence+2U && !out.hardware.intervalModuloValid);
+  assert(pps.healthStats().count==1U);
+#if HOSHIGUARD_GNSS_RESET
+  pulse(); pps.discardHistory();
+  assert(!pps.update(out));
+  pulse(); assert(pps.update(out) && !out.hardware.intervalModuloValid);
+#endif
+}
+
+void captureApbClock(bool divided) {
+  sim::pclk2=divided ? 36000000U : 72000000U;
+  RCC->CFGR=(divided ? 4U : 3U) << 11;
+  setup();
+  assert(pps.hardwareActive() && TIM1->PSC==71U);
+}
+
+void captureUnavailable(const char *reason) {
+  timerObj_t other = {};
+  if (!strcmp(reason,"timer-owner")) HardwareTimer_Handle[0]=&other;
+  else if (!strcmp(reason,"timer-clock")) sim::pclk2=71000001U;
+  else if (!strcmp(reason,"timer-remap")) AFIO->MAPR=AFIO_MAPR_TIM1_REMAP;
+  else RCC->APB2ENR=RCC_APB2ENR_TIM1EN;
+  setup();
+  assert(!pps.hardwareActive() && sim::timerSetups==0U);
+  sim::nowMs=1000U; pulse();
+  PpsSnapshot out = {};
+  assert(pps.update(out) && out.edgeMicros==1000000U && out.sequence==1U);
+  assert(!out.hardware.captureValid);
+}
+#endif
+
+#if HOSHIGUARD_IWDG
+void watchdogProgress() {
+  // 診断を実装していないので、起動原因フラグも読み替え・消去しない。
+  RCC->CSR=0xFC000000U;
+  setup();
+  assert(sim::iwdg.enabled && sim::lsiEnabled);
+  assert(sim::iwdg.prescaler==6U && sim::iwdg.reload==3749U);
+  assert(RCC->CSR==0xFC000000U);
+  sim::continuousRx=true;
+  for (uint32_t now=1U;now<=40000U;now+=100U) {
+    const unsigned reads=sim::rxReads;
+    step(now);
+    // GNSS が baud を変更する回では、その排出にも最大 256 byte を許可する。
+    assert(sim::rxReads-reads>=256U && sim::rxReads-reads<=512U);
+  }
+  sim::continuousRx=false;
+  // Bridge の背圧は外部の状態なので、処理が戻ればリロードを続ける。
+  DebugUart.room=0;
+  for (uint32_t now=40001U;now<80000U;now+=100U) step(now);
+  const unsigned feeds=sim::iwdg.feeds;
+  // ISR だけは動いても、主ループが止まれば reload は増えない。
+  sim::nowMs=120000U; pulse();
+  assert(sim::iwdg.feeds==feeds && sim::nowMs-sim::iwdg.lastFeed>32000U);
+}
+
+void watchdogInterruptedPass(const char *where) {
+  setup();
+  const unsigned feeds=sim::iwdg.feeds;
+  bool stalled=false;
+  if (!strcmp(where,"stall-rx")) { Serial2.rx.push_back(0x55U); sim::stallRx=true; }
+  else if (!strcmp(where,"stall-tx")) sim::stallTx=true;
+  else sim::stallOled=true;
+  try {
+    // OLED の非同期初期化が poll 段階に進むまで最大 10 回だけ実行する。
+    for (unsigned i=0U;i<10U;++i) {
+      sim::nowMs=1000U+i;
+      const unsigned before=sim::iwdg.feeds;
+      try { loop(); } catch (const sim::Stalled &) {
+        assert(sim::iwdg.feeds==before);
+        throw;
+      }
+    }
+  } catch (const sim::Stalled &) { stalled=true; }
+  assert(stalled);
+  if (strcmp(where,"stall-oled")) assert(sim::iwdg.feeds==feeds);
+}
+#endif
 }
 int main(int argc, char **argv) {
   assert(argc==2);
   (void)bridgeTextSequence;
+#if USE_TIM1_INPUT_CAPTURE
+  if (!strcmp(argv[1],"capture")) captureEvidence();
+  else if (!strcmp(argv[1],"capture-apb")) captureApbClock(true);
+  else if (!strcmp(argv[1],"capture-apb-undivided")) captureApbClock(false);
+  else if (!strncmp(argv[1],"timer-",6U)) captureUnavailable(argv[1]);
+  else
+#endif
+#if HOSHIGUARD_IWDG
+  if (!strcmp(argv[1],"watchdog")) watchdogProgress();
+  else if (!strncmp(argv[1],"stall-",6U)) watchdogInterruptedPass(argv[1]);
+  else
+#endif
 #if HOSHIGUARD_GNSS_RESET
   if (!strcmp(argv[1],"silent")) silentRecovery();
   else
@@ -197,5 +403,11 @@ int main(int argc, char **argv) {
   assert(sim::modes[45]==0);
 #endif
   assert(sim::modes[13]==0 && sim::modes[19]==0 && sim::modes[20]==0);
+#if !USE_TIM1_INPUT_CAPTURE
+  assert(sim::timerSetups==0U && TIM1->CR1==0U && TIM1->DIER==0U);
+#endif
+#if !HOSHIGUARD_IWDG
+  assert(!sim::iwdg.enabled && !sim::lsiEnabled && sim::iwdg.feeds==0U);
+#endif
   printf("ハードウェア模擬試験: %s PASS\n",argv[1]);
 }
