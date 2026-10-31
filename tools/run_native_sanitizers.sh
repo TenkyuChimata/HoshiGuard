@@ -11,6 +11,7 @@ cc -std=c11 -I"$UNITY" -c "$UNITY/unity.c" -o "$BUILD/unity.o"
 c++ -std=gnu++11 -Wall -Wextra -Wpedantic -Wformat=2 \
   -Wformat-truncation=2 -Wformat-overflow=2 -Wconversion -Wsign-conversion \
   -fsanitize=address,undefined -fno-omit-frame-pointer \
+  -DHOSHIGUARD_STATUS_LED=1 -DHOSHIGUARD_OLED_SWITCH=1 -DHOSHIGUARD_GNSS_RESET=1 \
   -I"$ROOT/include" -I"$UNITY" \
   "$ROOT/src/ubx_parser.cpp" \
   "$ROOT/src/qzss_l1s.cpp" \
@@ -31,6 +32,7 @@ c++ -std=gnu++11 -Wall -Wextra -Wpedantic -Wformat=2 \
   "$ROOT/src/oled_i2c.cpp" \
   "$ROOT/src/ssd1306.cpp" \
   "$ROOT/src/status_display.cpp" \
+  "$ROOT/src/receiver_aux.cpp" \
   "$ROOT"/test/test_*.cpp \
   "$BUILD/unity.o" -o "$BUILD/hoshiguard-tests"
 

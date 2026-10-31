@@ -57,3 +57,13 @@ void PpsCapture::snapshot(PpsSnapshot &out) const {
   out.recentBad = stats.recentBad;
   out.newEdge = false;
 }
+
+#if HOSHIGUARD_GNSS_RESET
+void PpsCapture::discardHistory() {
+  // ISR の通し番号は維持し、復旧前の保留エッジと間隔履歴だけを破棄する。
+  noInterrupts();
+  isrFlag_ = false;
+  interrupts();
+  intervalTracker_ = PpsIntervalTracker();
+}
+#endif

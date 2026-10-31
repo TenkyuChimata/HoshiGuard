@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stdint.h>
+#include "hardware_options.h"
 
 #define HOSHIGUARD_VERSION "0.2.7"
 #define HOSHIGUARD_VERSION_MAJOR 0U

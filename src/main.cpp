@@ -19,6 +19,8 @@
 #include "tim_tp.h"
 #include "ubx_dispatcher.h"
 #include "ubx_parser.h"
+#include "board_support.h"
+#include "receiver_aux.h"
 #if HOSHIGUARD_OLED
 #include "oled_stm32.h"
 #include "status_display.h"
@@ -44,11 +46,24 @@ PpsSnapshot ppsState = {};
 GnssUtcTime utc = {};
 bool selfTestPrinted = false;
 bool startUtcPrinted = false;
+#if HOSHIGUARD_STATUS_LED
+auxiliary::StatusLed statusLed;
+#endif
+#if HOSHIGUARD_GNSS_RESET
+auxiliary::StartupRecovery startupRecovery;
+bool recoveryRxBytes = false;
+#endif
 #if HOSHIGUARD_OLED
 oled::Ssd1306 oledScreen(stm32OledBus());
 oled::StatusDisplay oledStatus;
+#if HOSHIGUARD_OLED_SWITCH
+auxiliary::OledBootSwitch oledBootSwitch;
+#endif
 
 void updateOled() {
+#if HOSHIGUARD_OLED_SWITCH
+  if (oledBootSwitch.disabled()) return;
+#endif
   const uint32_t nowMs = millis();
   if (oledStatus.due(nowMs)) {
     oled::StatusInput input = {};
@@ -320,6 +335,9 @@ void handleSfrbx(const UbxPacketView &packet, const UbxDispatchEvent &event,
 }
 
 void handlePacket(const UbxPacketView &packet, uint32_t nowMs) {
+#if HOSHIGUARD_STATUS_LED
+  statusLed.noteUbx();
+#endif
 #if HOSHIGUARD_OLED
   oledStatus.noteUbx(millis());
 #endif
@@ -578,9 +596,44 @@ void beginStartupGnss(void *) {
   rawCapture.begin(millis());
   gnss.begin(millis());
 }
+
+#if HOSHIGUARD_GNSS_RESET
+void updateStartupRecovery(uint32_t nowMs) {
+  const auxiliary::RecoveryInput input = {
+      gnss.initState() == GnssInitState::Failed, ubx.stats().validPackets != 0U,
+      ppsState.sequence != 0U, recoveryRxBytes};
+  recoveryRxBytes = false;
+  const auxiliary::RecoveryAction action = startupRecovery.tick(nowMs, input);
+  if (action == auxiliary::RecoveryAction::AssertReset) {
+    board::setGnssReset(true);
+    ubx.resetStreamState();
+    pps.discardHistory();
+    ppsState = {};
+    timeSync = PpsUtcAssociator();
+    utc = {};
+    // 既存の完全な Bridge フレームと累積受信カウンターは破棄しない。
+  } else if (action == auxiliary::RecoveryAction::ReleaseReset) {
+    board::setGnssReset(false);
+  } else if (action == auxiliary::RecoveryAction::RestartSoftware) {
+    ubx.resetStreamState();
+    pps.discardHistory();
+    ppsState = {};
+    timeSync = PpsUtcAssociator();
+    utc = {};
+    gnss.begin(nowMs);  // UART の再オープン、baud 探索、全設定の読み戻し検証。
+    selfTestPrinted = false;
+  }
+}
+#endif
 }
 
 void setup() {
+#if HOSHIGUARD_STATUS_LED
+  board::beginStatusLed();
+#endif
+#if HOSHIGUARD_GNSS_RESET && !GNSS_UART_LOOPBACK_TEST
+  board::beginGnssReset();
+#endif
   DebugSerial.begin(DEBUG_BAUD);
 #if BRIDGE_BINARY_MODE
   // MaxM10s の診断用 Print 依存は維持するが、本番バイナリモードでは USART1 への全テキスト出力を抑止する。
@@ -610,6 +663,9 @@ void setup() {
                               beginStartupGnss};
   (void)runStartupSequence(hooks);
 #if HOSHIGUARD_OLED
+#if HOSHIGUARD_OLED_SWITCH
+  oledBootSwitch.sample(board::oledDisabledAtBoot());
+#endif
   oledScreen.begin(millis());
 #endif
 #if BRIDGE_BINARY_MODE
@@ -626,7 +682,11 @@ void loop() {
 #endif
   if (gnss.consumeParserResetRequest()) ubx.resetStreamState();
   (void)extendedMicros();  // 32 bit の周回が起きる前に micros() を拡張する。
-  if (pps.update(ppsState)) {
+  if (
+#if HOSHIGUARD_GNSS_RESET
+      !startupRecovery.suspendsReception() &&
+#endif
+      pps.update(ppsState)) {
 #if HOSHIGUARD_OLED
     oledStatus.notePps(millis());
 #endif
@@ -667,12 +727,22 @@ void loop() {
     const int incoming = Serial2.read();
     if (incoming < 0) break;
     const uint8_t byte = static_cast<uint8_t>(incoming);
+#if HOSHIGUARD_GNSS_RESET
+    recoveryRxBytes = true;
+    // リセット保持中のノイズは UBX や時刻の観測として受け入れない。
+    if (startupRecovery.suspendsReception()) continue;
+#endif
     gnss.observeRxByte(byte);
     if (ubx.feed(byte, packet)) {
       handlePacket(packet, nowMs);
     }
   }
+#if HOSHIGUARD_GNSS_RESET
+  updateStartupRecovery(nowMs);
+  if (!startupRecovery.suspendsReception()) gnss.update(nowMs);
+#else
   gnss.update(nowMs);
+#endif
   const ConfigEvidence *grid = gnss.configEvidence(CFG_TP_TIMEGRID_TP1);
   const ConfigEvidence *enabled = gnss.configEvidence(CFG_TP_TP1_ENA);
   const ConfigEvidence *sync = gnss.configEvidence(CFG_TP_SYNC_GNSS_TP1);
@@ -712,5 +782,14 @@ void loop() {
 #endif
 #if HOSHIGUARD_OLED
   updateOled();
+#endif
+#if HOSHIGUARD_STATUS_LED
+  const GnssInitState state = gnss.initState();
+  const bool initializing = state != GnssInitState::Ready && state != GnssInitState::Degraded &&
+                            state != GnssInitState::Failed;
+  const bool configError = state == GnssInitState::Degraded &&
+                          gnss.lastError() != GNSS_ERR_NO_SFRBX;
+  board::setStatusLed(statusLed.tick(nowMs, initializing, state == GnssInitState::Failed,
+                                    configError));
 #endif
 }

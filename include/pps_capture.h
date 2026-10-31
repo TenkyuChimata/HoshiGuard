@@ -23,6 +23,9 @@ class PpsCapture {
   bool update(PpsSnapshot &snapshot);
   void snapshot(PpsSnapshot &snapshot) const;
   const PpsIntervalStats &healthStats() const { return intervalTracker_.stats(); }
+#if HOSHIGUARD_GNSS_RESET
+  void discardHistory();
+#endif
 
  private:
   static void isrThunk();

@@ -45,6 +45,16 @@ pio run -e genericSTM32F103C8-bridge-binary -t upload
 `pio run -e genericSTM32F103C8-bridge-binary-no-oled` です。
 配線、表示の意味、障害時の動作は[OLED の説明](docs/deployment.md#ssd1306-oled)を参照してください。
 
+追加回路を一切使用しない最小構成は `pio run -e generic-minimal` です。
+STM32F103C8、MAX-M10S、アンテナ、安定した電源、上表の USART2・PPS・USART1 と共通 GND だけで使用でき、
+Explorer、OLED、EEPROM、LED、スイッチ、RESET 配線は不要です。SWD は PA13/PA14 と GND を使います。
+
+AnyShake Explorer E-C111G Rev.20250613（MAX-M10S 換装）の補助機能は
+`pio run -e explorer-e-c111g` で選択できます。OPTIONS 第 1 位で起動時の OLED 表示を抑止します。
+GNSS の末段ハードリセットは既定で無効で、明示的な `explorer-e-c111g-recovery` 環境だけが使用します。
+**原版 Explorer の PC13 LED は電流源接続のため使用しません。**
+端子の資料間不一致、機能別スイッチと制限は[追加ハードウェア](docs/deployment.md#追加ハードウェアとビルド環境)を参照してください。
+
 ## インストールと起動
 
 Python 3.10 以降とシリアルデバイスの読み書き権限が必要です。Debian では通常 `dialout` グループを使います。

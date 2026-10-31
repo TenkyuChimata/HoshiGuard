@@ -6,6 +6,7 @@ void run_time_tests();
 void run_logging_tests();
 void run_bridge_tests();
 void run_oled_tests();
+void run_receiver_aux_tests();
 
 extern "C" void setUp() {}
 extern "C" void tearDown() {}
@@ -18,5 +19,6 @@ int main(int, char **) {
   run_logging_tests();
   run_bridge_tests();
   run_oled_tests();
+  run_receiver_aux_tests();
   return UNITY_END();
 }
